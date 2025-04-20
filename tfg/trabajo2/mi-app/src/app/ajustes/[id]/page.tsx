@@ -1,62 +1,93 @@
-/**
- * Página de Creación de Nueva Tarea
- * Formulario para crear una nueva tarea con todos sus detalles
- */
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import EtiquetaCompleta from '../../components/etiqueta_completa';
+import { useEffect, useState } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import EtiquetaCompleta from '@/components/etiqueta_completa';
 
-export default function NewTask() {
+interface Tarea {
+  id: number;
+  titulo: string;
+  descripcion: string;
+  imagen?: string;
+  fechaLimite?: string;
+  prioridad?: string;
+  etiquetas?: string;
+}
+
+export default function AjustesTarea() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
+  const params = useParams();
+  const id = Number(params.id);
+
+  const [formData, setFormData] = useState<Tarea>({
+    id: 0,
     titulo: '',
     descripcion: '',
-    imagen: null as File | null,
+    imagen: '',
     fechaLimite: '',
     prioridad: 'media',
-    etiquetas: '',
-    estado: 'todo' as 'todo' | 'doing' | 'done'
+    etiquetas: ''
   });
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
+  useEffect(() => {
+    // Cargar los datos de la tarea
+    const tareas = JSON.parse(localStorage.getItem('tareas') || '[]');
+    const tarea = tareas.find((t: Tarea) => t.id === id);
+    if (tarea) {
+      setFormData(tarea);
+      if (tarea.imagen) {
+        setPreviewUrl(tarea.imagen);
+      }
+    }
+  }, [id]);
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setFormData({ ...formData, imagen: file });
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
+      setFormData({ ...formData, imagen: url });
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-  
-    // Leer tareas actuales desde localStorage
-    const tareasGuardadas = JSON.parse(localStorage.getItem('tareas') || '[]');
-  
-    // Crear una nueva tarea con los datos del formulario
-    const nuevaTarea = {
-      ...formData,
-      imagen: previewUrl, // Guardamos la URL de la imagen generada
-      id: Date.now(), // Agregamos un ID único
-    };
-  
-    // Agregarla a la lista y guardar en localStorage
-    const nuevasTareas = [...tareasGuardadas, nuevaTarea];
+    
+    // Leer tareas actuales
+    const tareas = JSON.parse(localStorage.getItem('tareas') || '[]');
+    
+    // Actualizar la tarea
+    const nuevasTareas = tareas.map((t: Tarea) => 
+      t.id === id ? { ...formData, imagen: previewUrl } : t
+    );
+    
+    // Guardar en localStorage
     localStorage.setItem('tareas', JSON.stringify(nuevasTareas));
-  
-    // Redirigir a la página first
+    
+    // Redirigir a first
     router.push('/first');
   };
-  
+
+  const handleDelete = () => {
+    // Leer tareas actuales
+    const tareas = JSON.parse(localStorage.getItem('tareas') || '[]');
+    
+    // Filtrar la tarea a eliminar
+    const nuevasTareas = tareas.filter((t: Tarea) => t.id !== id);
+    
+    // Guardar en localStorage
+    localStorage.setItem('tareas', JSON.stringify(nuevasTareas));
+    
+    // Redirigir a first
+    router.push('/first');
+  };
 
   return (
     <EtiquetaCompleta>
       <h1 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 bg-clip-text text-transparent">
-        Crear Nueva Tarea
+        Editar Tarea
       </h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -152,22 +183,31 @@ export default function NewTask() {
         </div>
 
         {/* Botones */}
-        <div className="flex gap-4 justify-end pt-6">
+        <div className="flex gap-4 justify-between pt-6">
           <button
             type="button"
-            onClick={() => router.push('/first')}
-            className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+            onClick={handleDelete}
+            className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
           >
-            Cancelar
+            Eliminar Tarea
           </button>
-          <button
-            type="submit"
-            className="px-6 py-2 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 text-white rounded-lg font-semibold shadow-lg hover:shadow-purple-500/50 transition-all duration-300"
-          >
-            Crear Tarea
-          </button>
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={() => router.push('/first')}
+              className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 text-white rounded-lg font-semibold shadow-lg hover:shadow-purple-500/50 transition-all duration-300"
+            >
+              Guardar Cambios
+            </button>
+          </div>
         </div>
       </form>
     </EtiquetaCompleta>
   );
-}
+} 

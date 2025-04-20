@@ -6,9 +6,13 @@ import EtiquetaCompleta from '../../components/etiqueta_completa';
 import TareaVista from '../../components/tarea_vista1';
 
 interface Tarea {
+  id: number;
   titulo: string;
   descripcion: string;
   imagen?: string;
+  fechaLimite?: string;
+  prioridad?: string;
+  etiquetas?: string;
 }
 
 export default function List() {
@@ -20,8 +24,8 @@ export default function List() {
     setTareas(data);
   }, []);
 
-  const handleDelete = (index: number) => {
-    const newTareas = tareas.filter((_, i) => i !== index);
+  const handleDelete = (id: number) => {
+    const newTareas = tareas.filter(tarea => tarea.id !== id);
     setTareas(newTareas);
     localStorage.setItem('tareas', JSON.stringify(newTareas));
   };
@@ -41,16 +45,22 @@ export default function List() {
         </button>
       </div>
 
-      {tareas.map((tarea, index) => (
-        <div key={index} className="mb-4">
-          <TareaVista
-            titulo={tarea.titulo}
-            descripcion={tarea.descripcion}
-            imagen={tarea.imagen}
-            onDelete={() => handleDelete(index)}
-          />
+      {tareas.length === 0 ? (
+        <div className="text-center text-gray-400 py-8">
+          No hay tareas creadas. ¡Crea tu primera tarea!
         </div>
-      ))}
+      ) : (
+        tareas.map((tarea) => (
+          <div key={tarea.id} className="mb-4">
+            <TareaVista
+              titulo={tarea.titulo}
+              descripcion={tarea.descripcion}
+              imagen={tarea.imagen}
+              onDelete={() => handleDelete(tarea.id)}
+            />
+          </div>
+        ))
+      )}
     </EtiquetaCompleta>
   );
 }
