@@ -18,9 +18,14 @@ export default function Home() {
         Tu nuevo gestor de tareas con poder eléctrico. Organiza. Prioriza. ¡Domina tu día con estilo!
       </p>
       <div className="mt-12">
-        <Link href="/about">
+        <Link href="/login">
           <button className="bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 text-white text-lg font-semibold py-3 px-8 rounded-2xl shadow-lg hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105">
             Empezar →
+          </button>
+        </Link>
+        <Link href="/pages">
+          <button className="bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 text-white text-lg font-semibold py-3 px-8 rounded-2xl shadow-lg hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105">
+            Pizarra →
           </button>
         </Link>
       </div>

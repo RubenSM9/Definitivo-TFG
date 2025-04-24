@@ -28,7 +28,7 @@ const menuItems = [
     title: 'Sobre Nosotros',
     options: [
       { label: 'Nuestra historia', href: '/sobre-nosotros/historia' },
-      { label: 'El equipo', href: '/sobre-nosotros/equipo' },
+      { label: 'El equipo', href: '/sobre-nosotros/Equipo' },
     ]
   }
 ];
