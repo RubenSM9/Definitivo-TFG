@@ -1,173 +1,71 @@
-/**
- * Página de Creación de Nueva Tarea
- * Formulario para crear una nueva tarea con todos sus detalles
- */
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import EtiquetaCompleta from '../../components/etiqueta_completa';
+import { useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 
-export default function NewTask() {
+export default function New() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    titulo: '',
-    descripcion: '',
-    imagen: null as File | null,
-    fechaLimite: '',
-    prioridad: 'media',
-    etiquetas: '',
-    estado: 'todo' as 'todo' | 'doing' | 'done'
-  });
+  const [nombre, setNombre] = useState('');
+  const [prioridad, setPrioridad] = useState('media');
 
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nombre.trim()) return;
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData({ ...formData, imagen: file });
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
+    const nuevasTarjetas = JSON.parse(localStorage.getItem('tarjetas') || '[]');
+    const nueva = { id: uuidv4(), nombre, tareas: [], prioridad };
+    nuevasTarjetas.push(nueva);
+    localStorage.setItem('tarjetas', JSON.stringify(nuevasTarjetas));
+
+    router.push('/first');
+  };
+
+  const getBordeColor = () => {
+    switch (prioridad) {
+      case 'alta':
+        return 'border-b-4 border-red-500';
+      case 'media':
+        return 'border-b-4 border-yellow-400';
+      case 'baja':
+        return 'border-b-4 border-green-500';
+      default:
+        return '';
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-  
-    // Leer tareas actuales desde localStorage
-    const tareasGuardadas = JSON.parse(localStorage.getItem('tareas') || '[]');
-  
-    // Crear una nueva tarea con los datos del formulario
-    const nuevaTarea = {
-      ...formData,
-      imagen: previewUrl, // Guardamos la URL de la imagen generada
-      id: Date.now(), // Agregamos un ID único
-    };
-  
-    // Agregarla a la lista y guardar en localStorage
-    const nuevasTareas = [...tareasGuardadas, nuevaTarea];
-    localStorage.setItem('tareas', JSON.stringify(nuevasTareas));
-  
-    // Redirigir a la página first
-    router.push('/first');
-  };
-  
-
   return (
-    <EtiquetaCompleta>
-      <h1 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 bg-clip-text text-transparent">
-        Crear Nueva Tarea
-      </h1>
+    <div className={`p-6 max-w-md mx-auto bg-gray-800 rounded-lg shadow-md text-white ${getBordeColor()}`}>
+      <h2 className="text-xl font-bold mb-4">Crear nueva tarjeta</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input
+          type="text"
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          placeholder="Nombre de la tarjeta"
+          className="w-full p-2 bg-gray-700 border border-gray-600 rounded"
+        />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Sección de imagen */}
-        <div className="flex justify-center mb-6">
-          <div className="w-32 h-32 relative">
-            <div className="w-full h-full bg-gray-700 rounded-lg overflow-hidden">
-              {previewUrl ? (
-                <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400">
-                  <span>Sin imagen</span>
-                </div>
-              )}
-            </div>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="absolute inset-0 opacity-0 cursor-pointer"
-            />
-          </div>
-        </div>
-
-        {/* Título */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Título de la tarea
-          </label>
-          <input
-            type="text"
-            value={formData.titulo}
-            onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
-            className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
-            required
-          />
-        </div>
-
-        {/* Descripción */}
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Descripción
-          </label>
-          <textarea
-            value={formData.descripcion}
-            onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-            className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all h-32 resize-none"
-            required
-          />
-        </div>
-
-        {/* Fecha límite */}
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Fecha límite
-          </label>
-          <input
-            type="date"
-            value={formData.fechaLimite}
-            onChange={(e) => setFormData({ ...formData, fechaLimite: e.target.value })}
-            className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
-          />
-        </div>
-
-        {/* Prioridad */}
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Prioridad
-          </label>
+          <label className="block text-sm mb-1">Prioridad</label>
           <select
-            value={formData.prioridad}
-            onChange={(e) => setFormData({ ...formData, prioridad: e.target.value })}
-            className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+            value={prioridad}
+            onChange={(e) => setPrioridad(e.target.value)}
+            className="w-full p-2 bg-gray-700 border border-gray-600 rounded"
           >
-            <option value="baja">Baja</option>
-            <option value="media">Media</option>
             <option value="alta">Alta</option>
+            <option value="media">Media</option>
+            <option value="baja">Baja</option>
           </select>
         </div>
 
-        {/* Etiquetas */}
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Etiquetas (separadas por comas)
-          </label>
-          <input
-            type="text"
-            value={formData.etiquetas}
-            onChange={(e) => setFormData({ ...formData, etiquetas: e.target.value })}
-            className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
-            placeholder="ej: urgente, proyecto, reunión"
-          />
-        </div>
-
-        {/* Botones */}
-        <div className="flex gap-4 justify-end pt-6">
-          <button
-            type="button"
-            onClick={() => router.push('/first')}
-            className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            className="px-6 py-2 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 text-white rounded-lg font-semibold shadow-lg hover:shadow-purple-500/50 transition-all duration-300"
-          >
-            Crear Tarea
-          </button>
-        </div>
+        <button
+          type="submit"
+          className="w-full py-2 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 text-white font-semibold rounded hover:shadow-lg transition"
+        >
+          Crear tarjeta
+        </button>
       </form>
-    </EtiquetaCompleta>
+    </div>
   );
 }

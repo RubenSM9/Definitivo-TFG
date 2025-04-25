@@ -5,36 +5,33 @@ import { useRouter, useParams } from 'next/navigation';
 import EtiquetaCompleta from '@/components/etiqueta_completa';
 
 interface Tarea {
-  id: number;
+  id: string;
   titulo: string;
   descripcion: string;
   imagen?: string;
   fechaLimite?: string;
   prioridad?: string;
   etiquetas?: string;
-  lista: string; // Agregado para manejar el estado de la tarea (Pendiente, En Progreso, Hecho)
 }
 
 export default function AjustesTarea() {
   const router = useRouter();
   const params = useParams();
-  const id = Number(params.id);
+  const id = params.id as string;
 
   const [formData, setFormData] = useState<Tarea>({
-    id: 0,
+    id: '',
     titulo: '',
     descripcion: '',
     imagen: '',
     fechaLimite: '',
     prioridad: 'media',
-    etiquetas: '',
-    lista: 'Pendiente' // Establecemos el estado inicial de la tarea
+    etiquetas: ''
   });
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    // Cargar los datos de la tarea
     const tareas = JSON.parse(localStorage.getItem('tareas') || '[]');
     const tarea = tareas.find((t: Tarea) => t.id === id);
     if (tarea) {
@@ -56,38 +53,19 @@ export default function AjustesTarea() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Leer tareas actuales
     const tareas = JSON.parse(localStorage.getItem('tareas') || '[]');
-    
-    // Actualizar la tarea
-    const nuevasTareas = tareas.map((t: Tarea) => 
+    const nuevasTareas = tareas.map((t: Tarea) =>
       t.id === id ? { ...formData, imagen: previewUrl } : t
     );
-    
-    // Guardar en localStorage
     localStorage.setItem('tareas', JSON.stringify(nuevasTareas));
-    
-    // Redirigir a first
-    router.push('/first');
+    router.push(`/tarea/${id}`);
   };
 
   const handleDelete = () => {
-    // Leer tareas actuales
     const tareas = JSON.parse(localStorage.getItem('tareas') || '[]');
-    
-    // Filtrar la tarea a eliminar
     const nuevasTareas = tareas.filter((t: Tarea) => t.id !== id);
-    
-    // Guardar en localStorage
     localStorage.setItem('tareas', JSON.stringify(nuevasTareas));
-    
-    // Redirigir a first
     router.push('/first');
-  };
-
-  const volver = () => {
-    router.back(); // Volver a la página anterior
   };
 
   return (
@@ -95,14 +73,6 @@ export default function AjustesTarea() {
       <h1 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 bg-clip-text text-transparent">
         Editar Tarea
       </h1>
-
-      {/* Botón Volver */}
-      <button
-        onClick={volver}
-        className="mb-4 py-2 px-4 bg-gray-400 hover:bg-gray-500 text-white font-bold rounded-lg shadow-md"
-      >
-        Volver
-      </button>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Sección de imagen */}
@@ -208,7 +178,7 @@ export default function AjustesTarea() {
           <div className="flex gap-4">
             <button
               type="button"
-              onClick={() => router.push('/first')}
+              onClick={() => router.push(`/tarea/${id}`)}
               className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
             >
               Cancelar
