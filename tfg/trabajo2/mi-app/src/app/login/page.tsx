@@ -10,17 +10,53 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import EtiquetaLarga from '../../components/etiqueta_larga';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../../firebase/firebaseConfig';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Aquí iría la lógica de autenticación
-    console.log('Login attempt:', { email, password });
-    // router.push('/dashboard'); // Descomentar cuando tengas la autenticación
+    try {
+      console.log('Intentando iniciar sesión con:', { email });
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log('Usuario logueado exitosamente:', userCredential.user);
+      router.push('/dashboard');
+    } catch (err: any) {
+      console.error('Error completo:', err);
+      console.error('Detalles del error:', {
+        código: err.code,
+        mensaje: err.message
+      });
+
+      // Mensajes de error más detallados
+      switch(err.code) {
+        case 'auth/invalid-credential':
+          setError('Correo o contraseña incorrectos');
+          break;
+        case 'auth/invalid-email':
+          setError('El formato del correo electrónico no es válido');
+          break;
+        case 'auth/network-request-failed':
+          setError('Error de conexión. Verifica tu conexión a internet.');
+          break;
+        case 'auth/too-many-requests':
+          setError('Demasiados intentos fallidos. Intenta más tarde.');
+          break;
+        case 'auth/api-key-not-valid':
+          setError('Error de configuración de Firebase. Contacta al administrador.');
+          break;
+        case 'auth/password-compromised':
+          setError('Esta contraseña ha sido comprometida en una brecha de datos. Por favor, cambia tu contraseña.');
+          break;
+        default:
+          setError(err.message || 'Error desconocido');
+      }
+    }
   };
 
   return (
@@ -65,6 +101,10 @@ export default function Login() {
           Iniciar Sesión
         </button>
       </form>
+
+      {error && (
+        <p className="mt-4 text-red-500 text-center">{error}</p>
+      )}
 
       <div className="mt-6 text-center">
         <p className="text-gray-400">
