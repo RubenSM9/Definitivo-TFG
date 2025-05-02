@@ -1,74 +1,126 @@
-import React from 'react';
+'use client';
 
-interface Plan {
-  name: string;
-  price: string;
-  advantages: string[];
-  disadvantages: string[];
-}
+import { useRouter } from 'next/navigation';
 
-const plans: Plan[] = [
+const plans = [
   {
-    name: 'Plan Básico',
-    price: 'Gratis',
-    advantages: ['Acceso limitado a funciones', 'Soporte básico'],
-    disadvantages: ['Sin acceso a funciones premium', 'Anuncios incluidos'],
+    name: 'Plan Gratis',
+    price: '0€/mes',
+    priceId: null,
+    description: 'Comienza sin coste. Funciones básicas para probar la plataforma.',
+    color: 'from-gray-800 to-gray-900',
+    advantages: [
+      '✅ Acceso limitado a funciones',
+      '✅ Perfecto para empezar',
+    ],
+    disadvantages: [
+      '❌ Sin soporte',
+      '❌ Sin acceso a funciones premium',
+      '❌ Anuncios visibles',
+    ],
   },
   {
     name: 'Plan Pro',
-    price: '$9.99/mes',
-    advantages: ['Acceso a todas las funciones', 'Soporte prioritario', 'Sin anuncios'],
-    disadvantages: ['Soporte', 'Sin acceso Anticipado'],
+    price: '9,99€/mes',
+    priceId: 'price_1RKLSxCOoodDo9d8ZSw9cqrB',
+    description: 'Ideal para usuarios individuales que buscan acceso completo a herramientas estándar.',
+    color: 'from-purple-700 to-purple-900',
+    advantages: [
+      '✅ Acceso completo a funciones estándar',
+      '✅ Actualizaciones regulares',
+      '✅ Panel de usuario personalizado',
+    ],
+    disadvantages: [
+      '❌ Sin soporte prioritario',
+      '❌ Sin acceso anticipado a nuevas funciones',
+    ],
   },
   {
     name: 'Plan Premium',
-    price: '$19.99/mes',
-    advantages: ['Funciones exclusivas', 'Soporte 24/7', 'Acceso anticipado a nuevas funciones'],
-    disadvantages: ['Costo elevado'],
+    price: '19,99€/mes',
+    priceId: 'price_1RKLTLCOoodDo9d8u3GvQ5za',
+    description: 'Todo lo del Pro, pero con más poder, prioridad y exclusividad.',
+    color: 'from-purple-600 to-pink-600',
+    advantages: [
+      '✅ Todo lo del plan Pro',
+      '✅ Soporte prioritario 24/7',
+      '✅ Acceso anticipado a funciones beta',
+      '✅ Invitaciones a eventos exclusivos',
+    ],
+    disadvantages: [
+      '❌ Coste mensual más alto',
+    ],
   },
 ];
 
-const PremiumPage: React.FC = () => {
+export default function PremiumPage() {
+  const router = useRouter();
+
+  const handleCheckout = async (priceId: string | null) => {
+    if (!priceId) return;
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      body: JSON.stringify({ priceId }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await res.json();
+
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert('Error al iniciar el checkout');
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-[#1a0029] to-black text-white p-8">
-      <h1 className="text-4xl font-extrabold text-center mb-12 text-purple-400">Elige tu Plan</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-        {plans.map((plan, i) => (
+    <div className="min-h-screen bg-black text-white p-8">
+      <h1 className="text-5xl font-extrabold text-center mb-16 text-purple-400 drop-shadow-lg">
+        🚀 Elige Tu Poder: Planes Premium
+      </h1>
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
+        {plans.map((plan) => (
           <div
             key={plan.name}
-            className={`bg-[#1c1c1c] border-2 rounded-2xl p-6 shadow-xl transform transition hover:scale-105 hover:border-purple-500 ${
-              i === 2 ? 'border-purple-600' : 'border-gray-700'
-            }`}
+            className={`bg-gradient-to-br ${plan.color} rounded-2xl shadow-xl p-8 flex flex-col justify-between transform hover:scale-105 transition`}
           >
-            <h2 className="text-2xl font-bold text-purple-300 mb-2">{plan.name}</h2>
-            <p className="text-lg font-semibold text-purple-200 mb-4">{plan.price}</p>
+            <div>
+              <h2 className="text-3xl font-bold mb-2">{plan.name}</h2>
+              <p className="text-xl font-semibold mb-6 text-lime-200">{plan.price}</p>
+              <p className="mb-4 text-gray-200 italic">{plan.description}</p>
 
-            <div className="mb-4">
-              <h3 className="text-purple-400 font-semibold">Ventajas</h3>
-              <ul className="list-disc list-inside text-sm text-green-400 mt-2 space-y-1">
-                {plan.advantages.map((adv, idx) => (
-                  <li key={idx}>{adv}</li>
-                ))}
-              </ul>
+              <div className="mb-4">
+                <h3 className="text-green-400 font-bold mb-2">✅ Ventajas</h3>
+                <ul className="list-disc list-inside text-green-300 space-y-1">
+                  {plan.advantages.map((adv, i) => (
+                    <li key={i}>{adv}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-red-400 font-bold mb-2">❌ Desventajas</h3>
+                <ul className="list-disc list-inside text-red-300 space-y-1">
+                  {plan.disadvantages.map((dis, i) => (
+                    <li key={i}>{dis}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
 
-            <div className="mb-6">
-              <h3 className="text-purple-400 font-semibold">Desventajas</h3>
-              <ul className="list-disc list-inside text-sm text-red-400 mt-2 space-y-1">
-                {plan.disadvantages.map((disadv, idx) => (
-                  <li key={idx}>{disadv}</li>
-                ))}
-              </ul>
-            </div>
-
-            <button className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-md transition">
-              Elegir {plan.name}
-            </button>
+            {plan.priceId && (
+              <button
+                onClick={() => handleCheckout(plan.priceId)}
+                className="mt-8 bg-black border border-white hover:bg-white hover:text-black text-white font-bold py-2 px-4 rounded-lg transition"
+              >
+                Elegir {plan.name}
+              </button>
+            )}
           </div>
         ))}
       </div>
     </div>
   );
-};
-
-export default PremiumPage;
+}

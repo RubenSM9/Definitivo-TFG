@@ -1,8 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0014;
+  --foreground: #e0d7ff;
 }
 
 @theme inline {
@@ -14,20 +18,25 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0a0014;
+    --foreground: #e0d7ff;
   }
 }
 
 body {
   @apply min-h-screen flex flex-col;
-  background: var(--background);
+  background: linear-gradient(135deg, #0a0014, #1a0033, #2a0052);
+  background-size: 600% 600%;
+  animation: backgroundShift 15s ease infinite;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+
+@keyframes backgroundShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
 
 @layer utilities {
   .animate-fade-in {
@@ -60,5 +69,33 @@ body {
 
   .text-neon-purple {
     color: #e0bbff;
+  }
+
+  .text-glow-purple {
+    color: #e9d5ff;
+    text-shadow:
+      0 0 3px #c084fc,
+      0 0 8px #f472b6,
+      0 0 12px #f472b6;
+  }
+
+  .neon-border {
+    border: 2px solid #a855f7;
+    box-shadow:
+      0 0 5px #a855f7,
+      0 0 15px #a855f7,
+      0 0 30px #a855f7;
+  }
+
+  .neon-button {
+    @apply bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition;
+    box-shadow:
+      0 0 10px #9333ea,
+      0 0 20px #c084fc;
+  }
+
+  .bg-glass {
+    backdrop-filter: blur(12px);
+    background-color: rgba(24, 0, 48, 0.3);
   }
 }
