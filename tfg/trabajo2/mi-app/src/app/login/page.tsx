@@ -1,9 +1,3 @@
-/**
- * Página de Inicio de Sesión
- * Permite a los usuarios existentes acceder a su cuenta
- * Incluye un formulario para email y contraseña
- * Ofrece enlaces para registrarse y acceso especial para desarrolladores
- */
 'use client';
 
 import { useState } from 'react';
@@ -25,7 +19,7 @@ export default function Login() {
       console.log('Intentando iniciar sesión con:', { email });
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log('Usuario logueado exitosamente:', userCredential.user);
-      router.push('/dashboard');
+      router.push('/first'); // Redirige a la carpeta "first"
     } catch (err: any) {
       console.error('Error completo:', err);
       console.error('Detalles del error:', {
@@ -113,13 +107,7 @@ export default function Login() {
             Regístrate
           </Link>
         </p>
-        <Link 
-          href="/first" 
-          className="mt-4 block text-cyan-400 hover:text-cyan-300 transition-colors"
-        >
-          Login de Desarrollador
-        </Link>
       </div>
     </EtiquetaLarga>
   );
-} 
+}

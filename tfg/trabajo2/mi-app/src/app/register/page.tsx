@@ -1,16 +1,11 @@
-/**
- * Página de Registro
- * Permite a nuevos usuarios crear una cuenta en Zentasker
- * Incluye un formulario con campos para nombre, email y contraseña
- * Valida que las contraseñas coincidan antes de enviar
- * Ofrece un enlace para usuarios existentes que quieran iniciar sesión
- */
 'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import EtiquetaLarga from '../../components/etiqueta_larga';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { auth } from '@/firebase/firebaseConfig';
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -25,9 +20,17 @@ export default function Register() {
       alert('Las contraseñas no coinciden');
       return;
     }
-    // Aquí iría la lógica de registro
-    console.log('Registration attempt:', { name, email, password });
-    // router.push('/dashboard'); // Descomentar cuando tengas la autenticación
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(userCredential.user, { displayName: name });
+
+      alert('Usuario registrado correctamente');
+      router.push('/login');
+    } catch (error: any) {
+      console.error('Error al registrar usuario:', error.message);
+      alert(`Error: ${error.message}`);
+    }
   };
 
   return (
@@ -35,7 +38,7 @@ export default function Register() {
       <h1 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 bg-clip-text text-transparent">
         Crear Cuenta
       </h1>
-      
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
@@ -111,4 +114,4 @@ export default function Register() {
       </div>
     </EtiquetaLarga>
   );
-} 
+}
