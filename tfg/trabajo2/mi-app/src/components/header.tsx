@@ -9,21 +9,12 @@ const menuItems = [
     title: 'Funciones',
     options: [
       { label: 'Planificacion', href: '/funciones/tareas' },
-      { label: 'PowerUP', href: '/funciones/colaboracion' },
-    ]
-  },
-  {
-    title: 'Soluciones',
-    options: [
-      { label: 'Para equipos', href: '/soluciones/equipos' },
-      { label: 'Para freelancers', href: '/soluciones/freelancers' },
     ]
   },
   {
     title: 'Planes',
     options: [
-      { label: 'Gratuito', href: '/planes/free' },
-      { label: 'Premium', href: '/planes/premium' },
+      { label: 'Plan', href: '/planes/premium' },
     ]
   },
   {
@@ -32,7 +23,13 @@ const menuItems = [
       { label: 'Nuestra historia', href: '/sobre-nosotros/historia' },
       { label: 'El equipo', href: '/sobre-nosotros/Equipo' },
     ]
-  }
+  },
+  {
+    title: 'Contacto',
+    options: [
+      { label: 'Página de Contacto', href: '/contacto/PaginaContacto' }, // Agregado el label
+    ]
+  },
 ];
 
 export default function Header() {

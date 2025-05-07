@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import EtiquetaCompleta from '@/components/etiqueta_completa';
+import Image from 'next/image';
 
 interface Tarea {
   id: string;
@@ -17,6 +18,10 @@ interface Tarea {
 export default function AjustesTarea() {
   const router = useRouter();
   const params = useParams();
+  if (!params?.id) {
+    router.push('/dashboard');
+    return null;
+  }
   const id = params.id as string;
 
   const [formData, setFormData] = useState<Tarea>({
@@ -39,13 +44,27 @@ export default function AjustesTarea() {
       if (tarea.imagen) {
         setPreviewUrl(tarea.imagen);
       }
+    } else {
+      // Si no se encuentra la tarea, redirigir al dashboard
+      router.push('/dashboard');
     }
-  }, [id]);
+    
+    // Cleanup function
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [id, router, previewUrl]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const url = URL.createObjectURL(file);
+      // Limpiar la URL anterior si existe
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
       setPreviewUrl(url);
       setFormData({ ...formData, imagen: url });
     }
@@ -65,7 +84,7 @@ export default function AjustesTarea() {
     const tareas = JSON.parse(localStorage.getItem('tareas') || '[]');
     const nuevasTareas = tareas.filter((t: Tarea) => t.id !== id);
     localStorage.setItem('tareas', JSON.stringify(nuevasTareas));
-    router.push('/first');
+    router.push('/dashboard');
   };
 
   return (
@@ -80,7 +99,15 @@ export default function AjustesTarea() {
           <div className="w-32 h-32 relative">
             <div className="w-full h-full bg-gray-700 rounded-lg overflow-hidden">
               {previewUrl ? (
-                <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                <div className="relative w-full h-full">
+                  <Image 
+                    src={previewUrl} 
+                    alt="Preview" 
+                    fill 
+                    className="object-cover" 
+                    sizes="(max-width: 128px) 100vw, 128px"
+                  />
+                </div>
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400">
                   <span>Sin imagen</span>
