@@ -25,7 +25,7 @@ export default function Login() {
       console.log('Intentando iniciar sesión con:', { email });
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log('Usuario logueado exitosamente:', userCredential.user);
-      router.push('/dashboard');
+      router.push('/first');
     } catch (err: any) {
       console.error('Error completo:', err);
       console.error('Detalles del error:', {
