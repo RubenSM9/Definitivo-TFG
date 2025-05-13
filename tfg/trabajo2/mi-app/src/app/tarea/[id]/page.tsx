@@ -1,4 +1,5 @@
 'use client';
+
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Settings } from 'lucide-react';
@@ -19,7 +20,7 @@ export default function BoardPage() {
   const [selectedTarea, setSelectedTarea] = useState<any>(null);
   const [draggedTarea, setDraggedTarea] = useState<any>(null);
   const [draggedFrom, setDraggedFrom] = useState<string>('');
-  const [showCrearTarea, setShowCrearTarea] = useState(false); // <-- nuevo estado para mostrar formulario
+  const [showCrearTarea, setShowCrearTarea] = useState(false);
 
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem('tarjetas') || '[]');
@@ -37,9 +38,7 @@ export default function BoardPage() {
     }
   }, [id]);
 
-  const volver = () => {
-    router.back();
-  };
+  const volver = () => router.back();
 
   const agregarTarea = () => {
     if (!newTarea.nombre.trim()) return;
@@ -77,9 +76,7 @@ export default function BoardPage() {
     }
   };
 
-  const allowDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
+  const allowDrop = (e: React.DragEvent) => e.preventDefault();
 
   const handleDragStart = (tarea: any, lista: string) => {
     setDraggedTarea(tarea);
@@ -122,21 +119,22 @@ export default function BoardPage() {
 
       <div className="flex space-x-4">
         {['Pendiente', 'En Progreso', 'Hecho'].map((estado, idx) => (
-            <div
+          <div
             key={estado}
-            className="flex flex-col p-4 border-2 rounded-lg bg-white shadow-lg w-1/3 max-h-[70vh] overflow-y-auto"
+            className="flex flex-col w-1/3 max-h-[70vh] overflow-y-auto rounded-3xl border border-purple-300 overflow-hidden bg-white/30 backdrop-blur-xl shadow-xl p-4"
             onDrop={(e) => handleDrop(e, estado)}
             onDragOver={allowDrop}
           >
             <h3
-              className={`font-semibold mb-2 text-lg ${estado === 'Pendiente'
-                ? 'text-green-600'
-                : estado === 'En Progreso'
+              className={`font-semibold mb-2 text-lg ${
+                estado === 'Pendiente'
+                  ? 'text-green-600'
+                  : estado === 'En Progreso'
                   ? 'text-yellow-600'
                   : 'text-blue-600'
-                }`}
+              }`}
             >
-              {estado}
+              {estado} ({tarjeta.tareas.filter((t: any) => t.lista === estado).length})
             </h3>
 
             <ul className="space-y-2 mb-4">
@@ -150,7 +148,20 @@ export default function BoardPage() {
                     onDragStart={() => handleDragStart(t, estado)}
                     onClick={() => setSelectedTarea(t)}
                   >
-                    <span>{t.nombre}</span>
+                    <div className="flex items-center space-x-2">
+                      <span
+                        className={`w-3 h-3 rounded-full ${
+                          t.prioridad === 'Alta'
+                            ? 'bg-red-500'
+                            : t.prioridad === 'Media'
+                            ? 'bg-yellow-400'
+                            : 'bg-green-500'
+                        }`}
+                        title={`Prioridad ${t.prioridad}`}
+                      ></span>
+                      <span>{t.nombre}</span>
+                    </div>
+
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -161,18 +172,18 @@ export default function BoardPage() {
                       ×
                     </button>
                     <div
-                      className={`absolute bottom-0 left-0 w-full h-2 rounded-b-lg ${estado === 'Pendiente'
-                        ? 'bg-green-400'
-                        : estado === 'En Progreso'
+                      className={`absolute bottom-0 left-0 w-full h-2 rounded-b-lg ${
+                        estado === 'Pendiente'
+                          ? 'bg-green-400'
+                          : estado === 'En Progreso'
                           ? 'bg-yellow-400'
                           : 'bg-blue-400'
-                        }`}
+                      }`}
                     ></div>
                   </li>
                 ))}
             </ul>
 
-            {/* Botón solo en la primera columna */}
             {idx === 0 && (
               <button
                 onClick={() => setShowCrearTarea(true)}
@@ -185,7 +196,7 @@ export default function BoardPage() {
         ))}
       </div>
 
-      {/* Modal de creación de tarea */}
+      {/* Modal crear tarea */}
       <AnimatePresence>
         {showCrearTarea && (
           <>
@@ -197,52 +208,23 @@ export default function BoardPage() {
               exit={{ opacity: 0 }}
             />
             <motion.div
-              className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90%] md:w-[500px] bg-gray-100 rounded-2xl shadow-2xl p-8 z-50 text-gray-900"
+              className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90%] md:w-[500px] rounded-3xl border border-purple-300 overflow-hidden bg-white/30 backdrop-blur-xl shadow-xl p-8 z-50 text-gray-900"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
             >
               <div className="space-y-4">
                 <h2 className="text-2xl font-bold text-center mb-4">Crear Nueva Tarea</h2>
-                <input
-                  type="text"
-                  value={newTarea.nombre}
-                  onChange={(e) => setNewTarea({ ...newTarea, nombre: e.target.value })}
-                  placeholder="Nombre de la tarea"
-                  className="w-full p-2 border rounded-lg shadow-md"
-                />
-                <textarea
-                  value={newTarea.descripcion}
-                  onChange={(e) => setNewTarea({ ...newTarea, descripcion: e.target.value })}
-                  placeholder="Descripción de la tarea"
-                  className="w-full p-2 border rounded-lg shadow-md"
-                />
-                <input
-                  type="date"
-                  value={newTarea.fechaLimite}
-                  onChange={(e) => setNewTarea({ ...newTarea, fechaLimite: e.target.value })}
-                  className="w-full p-2 border rounded-lg shadow-md"
-                />
-                <select
-                  value={newTarea.prioridad}
-                  onChange={(e) => setNewTarea({ ...newTarea, prioridad: e.target.value })}
-                  className="w-full p-2 border rounded-lg shadow-md"
-                >
+                <input type="text" value={newTarea.nombre} onChange={(e) => setNewTarea({ ...newTarea, nombre: e.target.value })} placeholder="Nombre de la tarea" className="w-full p-2 border rounded-lg shadow-md" />
+                <textarea value={newTarea.descripcion} onChange={(e) => setNewTarea({ ...newTarea, descripcion: e.target.value })} placeholder="Descripción de la tarea" className="w-full p-2 border rounded-lg shadow-md" />
+                <input type="date" value={newTarea.fechaLimite} onChange={(e) => setNewTarea({ ...newTarea, fechaLimite: e.target.value })} className="w-full p-2 border rounded-lg shadow-md" />
+                <select value={newTarea.prioridad} onChange={(e) => setNewTarea({ ...newTarea, prioridad: e.target.value })} className="w-full p-2 border rounded-lg shadow-md">
                   <option value="Baja">Baja</option>
                   <option value="Media">Media</option>
                   <option value="Alta">Alta</option>
                 </select>
-                <input
-                  type="text"
-                  value={newTarea.asignado}
-                  onChange={(e) => setNewTarea({ ...newTarea, asignado: e.target.value })}
-                  placeholder="Asignado a..."
-                  className="w-full p-2 border rounded-lg shadow-md"
-                />
-                <button
-                  onClick={agregarTarea}
-                  className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-md"
-                >
+                <input type="text" value={newTarea.asignado} onChange={(e) => setNewTarea({ ...newTarea, asignado: e.target.value })} placeholder="Asignado a..." className="w-full p-2 border rounded-lg shadow-md" />
+                <button onClick={agregarTarea} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-md">
                   Crear Tarea
                 </button>
               </div>
@@ -251,7 +233,7 @@ export default function BoardPage() {
         )}
       </AnimatePresence>
 
-      {/* Modal de vista de tarea */}
+      {/* Modal vista tarea */}
       <AnimatePresence>
         {selectedTarea && (
           <>
@@ -263,7 +245,7 @@ export default function BoardPage() {
               exit={{ opacity: 0 }}
             />
             <motion.div
-              className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90%] md:w-[500px] bg-gray-100 rounded-2xl shadow-2xl p-8 z-50 text-gray-900"
+              className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90%] md:w-[500px] rounded-3xl border border-purple-300 overflow-hidden bg-white/30 backdrop-blur-xl shadow-xl p-8 z-50 text-gray-900"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
@@ -274,8 +256,7 @@ export default function BoardPage() {
                 <p className="mb-2"><strong>Fecha límite:</strong> {selectedTarea.fechaLimite || 'No establecida'}</p>
                 <p className="mb-2">
                   <strong>Prioridad:</strong>{' '}
-                  <span className={selectedTarea.prioridad === 'Alta' ? 'text-red-600' :
-                    selectedTarea.prioridad === 'Media' ? 'text-yellow-600' : 'text-green-600'}>
+                  <span className={selectedTarea.prioridad === 'Alta' ? 'text-red-600' : selectedTarea.prioridad === 'Media' ? 'text-yellow-600' : 'text-green-600'}>
                     {selectedTarea.prioridad}
                   </span>
                 </p>

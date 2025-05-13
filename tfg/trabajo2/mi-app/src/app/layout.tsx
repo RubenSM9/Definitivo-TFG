@@ -29,17 +29,22 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <main className="flex flex-col min-h-screen bg-gradient-to-br from-black via-gray-900 to-purple-900 text-white">
+        <main
+          className="flex flex-col min-h-screen bg-white text-black"
+          style={{
+            backgroundImage: "url('/images/fondo_lila.png')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        >
           <Header />
 
-          {/* Contenido principal que crece */}
           <div className="flex-grow">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-24">
               {children}
             </div>
           </div>
 
-          {/* Footer siempre al fondo */}
           <Footer />
         </main>
       </body>

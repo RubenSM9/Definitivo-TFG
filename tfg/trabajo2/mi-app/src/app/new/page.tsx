@@ -24,34 +24,35 @@ export default function New() {
   const getBordeColor = () => {
     switch (prioridad) {
       case 'alta':
-        return 'border-b-4 border-red-500';
+        return 'border-b-4 border-red-400';
       case 'media':
-        return 'border-b-4 border-yellow-400';
+        return 'border-b-4 border-yellow-300';
       case 'baja':
-        return 'border-b-4 border-green-500';
+        return 'border-b-4 border-green-300';
       default:
         return '';
     }
   };
 
   return (
-    <div className={`p-6 max-w-md mx-auto bg-gray-800 rounded-lg shadow-md text-white ${getBordeColor()}`}>
-      <h2 className="text-xl font-bold mb-4">Crear nueva tarjeta</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div className={`p-8 max-w-md mx-auto bg-white/50 backdrop-blur-md rounded-2xl shadow-xl text-gray-800 ${getBordeColor()}`}>
+      <h2 className="text-2xl font-bold mb-6 text-purple-800">Crear nueva tarjeta</h2>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
         <input
           type="text"
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
           placeholder="Nombre de la tarjeta"
-          className="w-full p-2 bg-gray-700 border border-gray-600 rounded"
+          className="w-full p-3 bg-white border border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300"
         />
 
         <div>
-          <label className="block text-sm mb-1">Prioridad</label>
+          <label className="block text-sm font-medium text-purple-700 mb-1">Prioridad</label>
           <select
             value={prioridad}
             onChange={(e) => setPrioridad(e.target.value)}
-            className="w-full p-2 bg-gray-700 border border-gray-600 rounded"
+            className="w-full p-3 bg-white border border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300"
           >
             <option value="alta">Alta</option>
             <option value="media">Media</option>
@@ -61,7 +62,7 @@ export default function New() {
 
         <button
           type="submit"
-          className="w-full py-2 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 text-white font-semibold rounded hover:shadow-lg transition"
+          className="w-full py-3 rounded-xl font-semibold bg-gradient-to-r from-purple-400 to-purple-600 text-white hover:brightness-90 transition"
         >
           Crear tarjeta
         </button>

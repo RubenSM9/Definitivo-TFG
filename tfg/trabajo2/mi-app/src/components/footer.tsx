@@ -1,8 +1,8 @@
 // components/Footer.tsx
 export default function Footer() {
     return (
-      <footer className="bg-gradient-to-r from-purple-900 via-purple-800 to-blue-900 text-white py-10 px-6 mt-20 shadow-inner border-t border-purple-700/30">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8 text-center md:text-left">
+      <footer className="bg-gradient-to-r from-purple-900 via-purple-800 to-blue-900 text-white py-10 px-6 mt-[400px] shadow-inner border-t border-purple-700/30">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-3 py-10 gap-8 text-center md:text-left">
           
           {/* Branding */}
           <div>

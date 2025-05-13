@@ -17,29 +17,31 @@ export default function TareaPrevia({
   };
 
   return (
-    <div className="bg-gray-800 py-4 px-4 rounded-lg shadow-md flex flex-col justify-between w-full">
+    <div className="bg-white/50 backdrop-blur-md border border-purple-200 rounded-2xl shadow-lg p-4 flex flex-col justify-between transition hover:shadow-xl w-full">
+      
       {/* Parte clicable que lleva a la vista de tareas */}
       <div
         onClick={irAVistaTareas}
-        className="flex items-center space-x-4 mb-2 cursor-pointer hover:bg-gray-700 rounded p-2 transition"
+        className="flex items-center gap-4 cursor-pointer rounded-xl p-3 transition hover:bg-purple-100"
       >
-        <div className="w-10 h-10 rounded-full border-2 border-white flex items-center justify-center font-semibold bg-gray-700">
+        <div className="w-10 h-10 rounded-full border-2 border-purple-400 bg-purple-100 text-purple-800 flex items-center justify-center font-bold text-lg">
           {tarjeta.nombre?.[0]?.toUpperCase() || 'U'}
         </div>
-        <p className="text-sm font-medium text-white">{tarjeta.nombre}</p>
+        <p className="text-base font-semibold text-gray-800">{tarjeta.nombre}</p>
       </div>
 
+
       {/* Botones de Ajustes y Eliminar */}
-      <div className="flex justify-between items-center mt-2">
+      <div className="flex justify-between items-center mt-4">
         <button
           onClick={() => router.push(`/tarea/${tarjeta.id}/ajustes`)}
-          className="text-gray-400 hover:text-white transition text-xs flex items-center gap-1"
+          className="text-purple-600 hover:text-purple-800 transition text-sm flex items-center gap-1"
         >
           <Settings className="w-4 h-4" /> Ajustes
         </button>
         <button
           onClick={onDelete}
-          className="text-red-500 hover:text-red-700 transition text-xs flex items-center gap-1"
+          className="text-red-500 hover:text-red-700 transition text-sm flex items-center gap-1"
           title="Eliminar"
         >
           <Trash2 className="w-4 h-4" />
