@@ -2,18 +2,45 @@
 
 import { Settings, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { auth } from '@/firebase/firebaseConfig';
+import { deleteCard } from '@/firebase/firebaseOperations';
+
+interface Tarjeta {
+  id: string;
+  nombre: string;
+  prioridad: string;
+  tareas: any[];
+}
 
 export default function TareaPrevia({
   tarjeta,
   onDelete,
 }: {
-  tarjeta: any;
-  onDelete?: () => void;
+  tarjeta: Tarjeta;
+  onDelete: () => void;
 }) {
   const router = useRouter();
 
   const irAVistaTareas = () => {
     router.push(`/tarea/${tarjeta.id}`);
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm('¿Estás seguro de que quieres eliminar esta tarjeta?')) {
+      try {
+        if (!auth.currentUser) {
+          router.push('/login');
+          return;
+        }
+
+        await deleteCard(tarjeta.id);
+        onDelete(); // Notificar al componente padre para actualizar la lista
+      } catch (error) {
+        console.error("Error al eliminar la tarjeta:", error);
+        alert("Error al eliminar la tarjeta. Por favor, inténtalo de nuevo.");
+      }
+    }
   };
 
   return (
@@ -30,17 +57,19 @@ export default function TareaPrevia({
         <p className="text-base font-semibold text-gray-800">{tarjeta.nombre}</p>
       </div>
 
-
       {/* Botones de Ajustes y Eliminar */}
       <div className="flex justify-between items-center mt-4">
         <button
-          onClick={() => router.push(`/tarea/${tarjeta.id}/ajustes`)}
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/tarea/${tarjeta.id}/ajustes`);
+          }}
           className="text-purple-600 hover:text-purple-800 transition text-sm flex items-center gap-1"
         >
           <Settings className="w-4 h-4" /> Ajustes
         </button>
         <button
-          onClick={onDelete}
+          onClick={handleDelete}
           className="text-red-500 hover:text-red-700 transition text-sm flex items-center gap-1"
           title="Eliminar"
         >

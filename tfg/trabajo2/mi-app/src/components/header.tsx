@@ -2,8 +2,10 @@
 
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Menu } from 'lucide-react' // Asegúrate de tener instalado lucide-react
+import { auth } from '@/firebase/firebaseConfig'
+import Image from 'next/image'; // Importar el componente Image
 
 const menuItems = [
   {
@@ -31,8 +33,29 @@ const menuItems = [
 
 export default function Header() {
   const [openMenu, setOpenMenu] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const menuRef = useRef(null)
   const pathname = usePathname()
+  const router = useRouter()
+
+  useEffect(() => {
+    // Suscribirse al estado de autenticación
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setIsAuthenticated(!!user)
+    })
+
+    // Limpiar la suscripción cuando el componente se desmonte
+    return () => unsubscribe()
+  }, [])
+
+  const handleLogout = async () => {
+    try {
+      await auth.signOut()
+      router.push('/login')
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error)
+    }
+  }
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -50,9 +73,9 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           <Link
             href="/"
-            className="text-xl font-bold bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 bg-clip-text text-transparent"
+            className="flex items-center gap-2"
           >
-            Zentasker
+            <Image src="/images/logo_lila-removebg-preview.png" alt="Zentasker Logo" width={60} height={60} />
           </Link>
 
           <nav className="relative" ref={menuRef}>
@@ -85,6 +108,16 @@ export default function Header() {
                   ))}
                 </div>
               ))}
+              {isAuthenticated && (
+                <div className="border-t border-gray-700 mt-2">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-900/50 hover:text-red-300 transition-colors duration-200"
+                  >
+                    Cerrar sesión
+                  </button>
+                </div>
+              )}
             </div>
           </nav>
         </div>

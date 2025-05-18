@@ -2,23 +2,37 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import { auth } from '@/firebase/firebaseConfig';
+import { createCard } from '@/firebase/firebaseOperations';
 
 export default function New() {
   const router = useRouter();
   const [nombre, setNombre] = useState('');
   const [prioridad, setPrioridad] = useState('media');
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nombre.trim()) return;
 
-    const nuevasTarjetas = JSON.parse(localStorage.getItem('tarjetas') || '[]');
-    const nueva = { id: uuidv4(), nombre, tareas: [], prioridad };
-    nuevasTarjetas.push(nueva);
-    localStorage.setItem('tarjetas', JSON.stringify(nuevasTarjetas));
+    try {
+      if (!auth.currentUser) {
+        router.push('/login');
+        return;
+      }
 
-    router.push('/first');
+      const cardData = {
+        nombre,
+        prioridad,
+        tareas: []
+      };
+
+      await createCard(auth.currentUser.uid, cardData);
+      router.push('/first');
+    } catch (error) {
+      console.error('Error al crear tarjeta:', error);
+      setError('Error al crear la tarjeta. Por favor, intenta de nuevo.');
+    }
   };
 
   const getBordeColor = () => {
@@ -37,6 +51,12 @@ export default function New() {
   return (
     <div className={`p-8 max-w-md mx-auto bg-white/50 backdrop-blur-md rounded-2xl shadow-xl text-gray-800 ${getBordeColor()}`}>
       <h2 className="text-2xl font-bold mb-6 text-purple-800">Crear nueva tarjeta</h2>
+
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          {error}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <input

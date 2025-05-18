@@ -1,27 +1,47 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import TareaCrear from '@/components/tarea_crear';
 import TareaPrevia from '@/components/tarea_previa';
+import { auth } from '@/firebase/firebaseConfig';
+import { getUserCards, deleteCard } from '@/firebase/firebaseOperations';
+import Image from 'next/image';
 
 export default function FirstPage() {
+  const router = useRouter();
   const [tarjetas, setTarjetas] = useState<any[]>([]);
   const [busqueda, setBusqueda] = useState('');
   const [filtroPrioridad, setFiltroPrioridad] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     cargarTarjetas();
   }, []);
 
-  const cargarTarjetas = () => {
-    const stored = JSON.parse(localStorage.getItem('tarjetas') || '[]');
-    setTarjetas(stored);
+  const cargarTarjetas = async () => {
+    try {
+      if (!auth.currentUser) {
+        router.push('/login');
+        return;
+      }
+
+      const cards = await getUserCards(auth.currentUser.uid);
+      setTarjetas(cards);
+    } catch (error) {
+      console.error('Error al cargar tarjetas:', error);
+      setError('Error al cargar las tarjetas. Por favor, intenta de nuevo.');
+    }
   };
 
-  const handleDelete = (id: string) => {
-    const nuevas = tarjetas.filter((t) => t.id !== id);
-    localStorage.setItem('tarjetas', JSON.stringify(nuevas));
-    setTarjetas(nuevas);
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteCard(id);
+      await cargarTarjetas();
+    } catch (error) {
+      console.error('Error al eliminar tarjeta:', error);
+      setError('Error al eliminar la tarjeta. Por favor, intenta de nuevo.');
+    }
   };
 
   const tarjetasFiltradas = tarjetas.filter((t) => {
@@ -32,7 +52,6 @@ export default function FirstPage() {
 
   return (
     <div className="flex w-full max-w-7xl rounded-3xl border border-purple-300 overflow-hidden bg-white/30 backdrop-blur-xl shadow-xl">
-      
       {/* Sidebar izquierda */}
       <div className="w-full md:w-1/4 p-6 bg-white/50 backdrop-blur-lg text-gray-800 rounded-l-3xl shadow-inner">
         <h2 className="text-xl font-semibold mb-6">Filtros</h2>
@@ -61,6 +80,12 @@ export default function FirstPage() {
             <option value="alta">Alta</option>
           </select>
         </div>
+
+        {error && (
+          <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            {error}
+          </div>
+        )}
       </div>
 
       {/* Contenido derecho */}

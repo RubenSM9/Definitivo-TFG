@@ -1,78 +1,274 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { Settings } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { Settings, Calendar, Users, Tag, Clock, BarChart2, Filter, Search } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { auth } from '@/firebase/firebaseConfig';
+import { 
+  createCard, 
+  getUserCards, 
+  updateCard, 
+  deleteCard,
+  addTask,
+  updateTask,
+  deleteTask,
+  addSubtask,
+  updateSubtask,
+  deleteSubtask,
+  addComment
+} from '@/firebase/firebaseOperations';
+
+interface Comentario {
+  id: string;
+  texto: string;
+  fecha: string;
+}
+
+interface Subtarea {
+  id: string;
+  nombre: string;
+  completada: boolean;
+  prioridad: string;
+  fechaLimite?: string;
+  comentarios: Comentario[];
+}
+
+interface Tarea {
+  id: string;
+  nombre: string;
+  descripcion?: string;
+  fechaLimite?: string;
+  prioridad: string;
+  asignado?: string;
+  subtareas: Subtarea[];
+  completada: boolean;
+}
+
+interface Tarjeta {
+  id: string;
+  nombre: string;
+  prioridad: string;
+  tareas: Tarea[];
+}
 
 export default function BoardPage() {
   const params = useParams();
   const id = params?.id as string;
   const router = useRouter();
-  const [tarjeta, setTarjeta] = useState<any>(null);
+  const [tarjeta, setTarjeta] = useState<Tarjeta | null>(null);
   const [newTarea, setNewTarea] = useState({
     nombre: '',
     descripcion: '',
     fechaLimite: '',
     prioridad: 'Media',
     asignado: '',
+    etiquetas: [] as string[],
   });
-  const [selectedTarea, setSelectedTarea] = useState<any>(null);
   const [draggedTarea, setDraggedTarea] = useState<any>(null);
   const [draggedFrom, setDraggedFrom] = useState<string>('');
   const [showCrearTarea, setShowCrearTarea] = useState(false);
+  const [selectedTarea, setSelectedTarea] = useState<any>(null);
+  const [nuevaSubtarea, setNuevaSubtarea] = useState('');
+  const [nuevaSubtareaPrioridad, setNuevaSubtareaPrioridad] = useState('Media');
+  const [nuevaSubtareaFechaLimite, setNuevaSubtareaFechaLimite] = useState('');
+  const [nuevaSubtareaComentario, setNuevaSubtareaComentario] = useState('');
+  const [mostrarComentarios, setMostrarComentarios] = useState<{ [key: string]: boolean }>({});
+  const [filtros, setFiltros] = useState({
+    busqueda: '',
+    prioridad: '',
+    estado: '',
+    fecha: '',
+  });
+  const [estadisticas, setEstadisticas] = useState({
+    totalTareas: 0,
+    completadas: 0,
+    pendientes: 0,
+    atrasadas: 0,
+  });
+
+  // Función para cargar los datos de Firestore
+  const cargarDatos = async () => {
+    try {
+      if (!auth.currentUser) {
+        router.push('/login');
+        return;
+      }
+
+      const cards = await getUserCards(auth.currentUser.uid);
+      const card = cards.find(c => c.id === id) as Tarjeta;
+      
+      if (card) {
+        setTarjeta(card);
+      } else {
+        console.log("No se encontró la tarjeta");
+        router.push('/first');
+      }
+    } catch (error) {
+      console.error("Error al cargar los datos:", error);
+    }
+  };
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem('tarjetas') || '[]');
-    const actual = stored.find((t: any) => t.id === id);
-
-    if (actual) {
-      actual.tareas = actual.tareas.map((t: any) => ({
-        ...t,
-        id: t.id || crypto.randomUUID(),
-      }));
-      setTarjeta(actual);
-
-      const updated = stored.map((t: any) => (t.id === id ? actual : t));
-      localStorage.setItem('tarjetas', JSON.stringify(updated));
-    }
+    cargarDatos();
   }, [id]);
+
+  useEffect(() => {
+    if (tarjeta) {
+      const stats = {
+        totalTareas: tarjeta.tareas.length,
+        completadas: tarjeta.tareas.filter((t: Tarea) => t.completada).length,
+        pendientes: tarjeta.tareas.filter((t: Tarea) => !t.completada).length,
+        atrasadas: tarjeta.tareas.filter((t: Tarea) => t.fechaLimite && estaAtrasada(t.fechaLimite)).length,
+      };
+      setEstadisticas(stats);
+    }
+  }, [tarjeta]);
+
+  const handleTareaClick = (tarea: Tarea) => {
+    setSelectedTarea({
+      ...tarea,
+      completada: tarea.completada ?? false,
+      subtareas: tarea.subtareas ?? []
+    });
+  };
+
+  const handleTareaCompletion = async (tarea: Tarea) => {
+    try {
+      if (!auth.currentUser) {
+        router.push('/login');
+        return;
+      }
+
+      const nuevaTarea = {
+        ...tarea,
+        completada: !tarea.completada
+      };
+
+      await updateTask(id, tarea.id, nuevaTarea);
+
+      // Actualizar el estado local
+      setSelectedTarea(nuevaTarea);
+      
+      // Actualizar la tarjeta local
+      setTarjeta(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          tareas: prev.tareas.map(t => 
+            t.id === tarea.id ? nuevaTarea : t
+          )
+        };
+      });
+
+      await cargarDatos();
+    } catch (error) {
+      console.error("Error al actualizar estado de la tarea:", error);
+    }
+  };
+
+  const handleSubtareaChange = useCallback(async (sub: any) => {
+    try {
+      if (!auth.currentUser) {
+        router.push('/login');
+        return;
+      }
+
+      await updateSubtask(id, selectedTarea.id, sub.id, {
+        completada: !sub.completada,
+        nombre: sub.nombre,
+        prioridad: sub.prioridad,
+        fechaLimite: sub.fechaLimite
+      });
+
+      // Solo actualizar el estado de la tarea si tiene subtareas
+      if (selectedTarea.subtareas && selectedTarea.subtareas.length > 0) {
+        const todasCompletadas = selectedTarea.subtareas.every((s: Subtarea) => 
+          s.id === sub.id ? !sub.completada : s.completada
+        );
+
+        // Actualizar el estado de la tarea si es necesario
+        if (todasCompletadas !== selectedTarea.completada) {
+          await updateTask(id, selectedTarea.id, {
+            ...selectedTarea,
+            completada: todasCompletadas
+          });
+        }
+
+        // Actualizar el estado local
+        setSelectedTarea((prev: Tarea) => ({
+          ...prev,
+          subtareas: prev.subtareas.map((s: Subtarea) => 
+            s.id === sub.id ? { ...s, completada: !s.completada } : s
+          ),
+          completada: todasCompletadas
+        }));
+      } else {
+        // Si no hay subtareas, solo actualizar la subtarea
+        setSelectedTarea((prev: Tarea) => ({
+          ...prev,
+          subtareas: prev.subtareas.map((s: Subtarea) => 
+            s.id === sub.id ? { ...s, completada: !s.completada } : s
+          )
+        }));
+      }
+
+      await cargarDatos();
+    } catch (error) {
+      console.error("Error al actualizar subtarea:", error);
+    }
+  }, [selectedTarea, id]);
 
   const volver = () => router.back();
 
-  const agregarTarea = () => {
+  const agregarTarea = async () => {
     if (!newTarea.nombre.trim()) return;
-    const updated = JSON.parse(localStorage.getItem('tarjetas') || '[]');
-    const index = updated.findIndex((t: any) => t.id === id);
+    
+    try {
+      if (!auth.currentUser) {
+        router.push('/login');
+        return;
+      }
 
-    if (index !== -1) {
-      const nueva = {
-        id: crypto.randomUUID(),
+      const tareaData = {
         ...newTarea,
-        lista: 'Pendiente',
+        id: Date.now().toString(),
+        subtareas: [],
+        completada: false
       };
-      updated[index].tareas.push(nueva);
-      localStorage.setItem('tarjetas', JSON.stringify(updated));
-      setTarjeta(updated[index]);
+
+      await addTask(id, tareaData);
+
+      // Actualizar la tarjeta local
+      setTarjeta(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          tareas: [...prev.tareas, tareaData]
+        };
+      });
+
       setNewTarea({
         nombre: '',
         descripcion: '',
         fechaLimite: '',
         prioridad: 'Media',
         asignado: '',
+        etiquetas: []
       });
       setShowCrearTarea(false);
+    } catch (error) {
+      console.error("Error al agregar tarea:", error);
+      alert("Error al crear la tarea. Por favor, inténtalo de nuevo.");
     }
   };
 
-  const eliminarTarea = (tareaId: string) => {
-    const updated = JSON.parse(localStorage.getItem('tarjetas') || '[]');
-    const tarjetaIndex = updated.findIndex((t: any) => t.id === id);
-
-    if (tarjetaIndex !== -1) {
-      updated[tarjetaIndex].tareas = updated[tarjetaIndex].tareas.filter((ta: any) => ta.id !== tareaId);
-      localStorage.setItem('tarjetas', JSON.stringify(updated));
-      setTarjeta(updated[tarjetaIndex]);
+  const eliminarTarea = async (tareaId: string) => {
+    try {
+      await deleteTask(id, tareaId);
+      cargarDatos();
+    } catch (error) {
+      console.error("Error al eliminar tarea:", error);
     }
   };
 
@@ -101,101 +297,302 @@ export default function BoardPage() {
     }
   };
 
+  const calcularProgreso = (tarea: any) => {
+    if (!tarea?.subtareas || tarea.subtareas.length === 0) return 0;
+    const completadas = tarea.subtareas.filter((s: any) => s.completada).length;
+    return Math.round((completadas / tarea.subtareas.length) * 100);
+  };
+  
+  const eliminarSubtarea = async (subId: string) => {
+    try {
+      if (!auth.currentUser) {
+        router.push('/login');
+        return;
+      }
+
+      await deleteSubtask(id, selectedTarea.id, subId);
+      await cargarDatos();
+    } catch (error) {
+      console.error("Error al eliminar subtarea:", error);
+    }
+  };
+  
+
+  const agregarSubtarea = async () => {
+    if (!nuevaSubtarea.trim()) return;
+
+    try {
+      if (!auth.currentUser) {
+        router.push('/login');
+        return;
+      }
+
+      // Asegurarnos de que la tarea seleccionada tenga un array de subtareas
+      if (!selectedTarea.subtareas) {
+        selectedTarea.subtareas = [];
+      }
+
+      const nuevaSubtareaData = {
+        id: Date.now().toString(),
+      nombre: nuevaSubtarea,
+      completada: false,
+        prioridad: nuevaSubtareaPrioridad,
+        fechaLimite: nuevaSubtareaFechaLimite,
+        comentarios: []
+      };
+
+      await addSubtask(id, selectedTarea.id, nuevaSubtareaData);
+
+      // Actualizar el estado local inmediatamente
+      setSelectedTarea((prev: Tarea) => ({
+        ...prev,
+        subtareas: [...(prev.subtareas || []), nuevaSubtareaData]
+      }));
+
+    setNuevaSubtarea('');
+      setNuevaSubtareaPrioridad('Media');
+      setNuevaSubtareaFechaLimite('');
+      
+      // Recargar los datos en segundo plano
+      cargarDatos();
+    } catch (error) {
+      console.error("Error al agregar subtarea:", error);
+    }
+  };
+
+  const agregarComentario = async (subId: string) => {
+    if (!nuevaSubtareaComentario.trim()) return;
+
+    try {
+      if (!auth.currentUser) {
+        router.push('/login');
+        return;
+      }
+
+      await addComment(id, selectedTarea.id, subId, {
+        texto: nuevaSubtareaComentario,
+        fecha: new Date().toISOString()
+      });
+
+      setNuevaSubtareaComentario('');
+      await cargarDatos();
+    } catch (error) {
+      console.error("Error al agregar comentario:", error);
+    }
+  };
+
+  const getPrioridadColor = (prioridad: string) => {
+    switch (prioridad) {
+      case 'Alta':
+        return 'bg-red-100 text-red-800';
+      case 'Media':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'Baja':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const estaAtrasada = (fechaLimite: string) => {
+    if (!fechaLimite) return false;
+    return new Date(fechaLimite) < new Date();
+  };
+
+  const tareasFiltradas = tarjeta?.tareas.filter((tarea: Tarea) => {
+    const coincideBusqueda = tarea.nombre.toLowerCase().includes(filtros.busqueda.toLowerCase());
+    const coincidePrioridad = filtros.prioridad ? tarea.prioridad === filtros.prioridad : true;
+    const coincideEstado = filtros.estado ? 
+      (filtros.estado === 'completada' ? tarea.completada :
+       filtros.estado === 'pendiente' ? !tarea.completada : true) : true;
+    const coincideFecha = filtros.fecha ? tarea.fechaLimite === filtros.fecha : true;
+    return coincideBusqueda && coincidePrioridad && coincideEstado && coincideFecha;
+  });
+
   if (!tarjeta) return <div className="p-6">Tarjeta no encontrada</div>;
 
-  return (
-    <div className="p-6 relative">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-center flex-1">{tarjeta.nombre}</h2>
-        <Settings className="w-8 h-8 text-gray-600 hover:text-gray-800 cursor-pointer" />
-      </div>
 
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-white p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header con estadísticas */}
+        <div className="bg-white/30 backdrop-blur-xl rounded-2xl border border-purple-200 p-6 mb-8">
+      <div className="flex justify-between items-center mb-6">
+            <h2 className="text-3xl font-bold text-purple-800">{tarjeta?.nombre}</h2>
+            <div className="flex space-x-4">
       <button
         onClick={volver}
-        className="mb-4 py-2 px-4 bg-gray-400 hover:bg-gray-500 text-white font-bold rounded-lg shadow-md"
+                className="py-2 px-6 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg shadow-sm transition-all duration-200"
       >
         Volver
       </button>
-
-      <div className="flex space-x-4">
-        {['Pendiente', 'En Progreso', 'Hecho'].map((estado, idx) => (
-          <div
-            key={estado}
-            className="flex flex-col w-1/3 max-h-[70vh] overflow-y-auto rounded-3xl border border-purple-300 overflow-hidden bg-white/30 backdrop-blur-xl shadow-xl p-4"
-            onDrop={(e) => handleDrop(e, estado)}
-            onDragOver={allowDrop}
-          >
-            <h3
-              className={`font-semibold mb-2 text-lg ${
-                estado === 'Pendiente'
-                  ? 'text-green-600'
-                  : estado === 'En Progreso'
-                  ? 'text-yellow-600'
-                  : 'text-blue-600'
-              }`}
-            >
-              {estado} ({tarjeta.tareas.filter((t: any) => t.lista === estado).length})
-            </h3>
-
-            <ul className="space-y-2 mb-4">
-              {tarjeta.tareas
-                .filter((t: any) => t.lista === estado)
-                .map((t: any) => (
-                  <li
-                    key={t.id}
-                    className="relative bg-gray-100 p-3 rounded-lg text-black shadow-md hover:bg-gray-200 flex justify-between items-center cursor-pointer"
-                    draggable
-                    onDragStart={() => handleDragStart(t, estado)}
-                    onClick={() => setSelectedTarea(t)}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <span
-                        className={`w-3 h-3 rounded-full ${
-                          t.prioridad === 'Alta'
-                            ? 'bg-red-500'
-                            : t.prioridad === 'Media'
-                            ? 'bg-yellow-400'
-                            : 'bg-green-500'
-                        }`}
-                        title={`Prioridad ${t.prioridad}`}
-                      ></span>
-                      <span>{t.nombre}</span>
-                    </div>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        eliminarTarea(t.id);
-                      }}
-                      className="ml-2 text-red-500 hover:text-red-700 font-bold text-lg"
-                    >
-                      ×
-                    </button>
-                    <div
-                      className={`absolute bottom-0 left-0 w-full h-2 rounded-b-lg ${
-                        estado === 'Pendiente'
-                          ? 'bg-green-400'
-                          : estado === 'En Progreso'
-                          ? 'bg-yellow-400'
-                          : 'bg-blue-400'
-                      }`}
-                    ></div>
-                  </li>
-                ))}
-            </ul>
-
-            {idx === 0 && (
               <button
                 onClick={() => setShowCrearTarea(true)}
-                className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-md"
+                className="py-2 px-6 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-sm transition-all duration-200"
               >
-                + Agregar Tarea
+                + Nueva Tarea
               </button>
-            )}
+            </div>
           </div>
-        ))}
-      </div>
 
+          {/* Estadísticas */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white/80 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center space-x-2">
+                <BarChart2 className="text-purple-600" />
+                <h3 className="font-semibold">Total Tareas</h3>
+              </div>
+              <p className="text-2xl font-bold text-purple-800">{estadisticas.totalTareas}</p>
+            </div>
+            <div className="bg-white/80 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center space-x-2">
+                <Clock className="text-green-600" />
+                <h3 className="font-semibold">Completadas</h3>
+              </div>
+              <p className="text-2xl font-bold text-green-600">{estadisticas.completadas}</p>
+            </div>
+            <div className="bg-white/80 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center space-x-2">
+                <Calendar className="text-yellow-600" />
+                <h3 className="font-semibold">Pendientes</h3>
+              </div>
+              <p className="text-2xl font-bold text-yellow-600">{estadisticas.pendientes}</p>
+            </div>
+            <div className="bg-white/80 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center space-x-2">
+                <Clock className="text-red-600" />
+                <h3 className="font-semibold">Atrasadas</h3>
+              </div>
+              <p className="text-2xl font-bold text-red-600">{estadisticas.atrasadas}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Filtros */}
+        <div className="bg-white/30 backdrop-blur-xl rounded-2xl border border-purple-200 p-6 mb-8">
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-[200px]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar tareas..."
+                  value={filtros.busqueda}
+                  onChange={(e) => setFiltros({ ...filtros, busqueda: e.target.value })}
+                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+            <select
+              value={filtros.prioridad}
+              onChange={(e) => setFiltros({ ...filtros, prioridad: e.target.value })}
+              className="px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="">Todas las prioridades</option>
+              <option value="Alta">Alta</option>
+              <option value="Media">Media</option>
+              <option value="Baja">Baja</option>
+            </select>
+            <select
+              value={filtros.estado}
+              onChange={(e) => setFiltros({ ...filtros, estado: e.target.value })}
+              className="px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="">Todos los estados</option>
+              <option value="completada">Completadas</option>
+              <option value="pendiente">Pendientes</option>
+            </select>
+            <input
+              type="date"
+              value={filtros.fecha}
+              onChange={(e) => setFiltros({ ...filtros, fecha: e.target.value })}
+              className="px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+            </div>
+
+        {/* Contenedor principal de tareas */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-600 rounded-[2.5rem] blur-xl opacity-20"></div>
+          <div className="relative bg-white/30 backdrop-blur-xl rounded-[2.5rem] border-4 border-purple-300 overflow-hidden shadow-2xl p-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {tareasFiltradas?.map((tarea: any) => (
+                <motion.div
+                  key={tarea.id}
+                  className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-purple-200 hover:shadow-xl transition-all duration-200 cursor-pointer"
+                  onClick={() => handleTareaClick(tarea)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <div className="p-5">
+                    <div className="flex items-start justify-between">
+                      <h4 className="font-medium text-gray-900">{tarea.nombre}</h4>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
+                            eliminarTarea(tarea.id);
+                          }
+                        }}
+                        className="bg-red-100 hover:bg-red-200 text-red-600 px-2 py-1 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                        aria-label="Eliminar tarea"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
+                    
+                    {tarea.descripcion && (
+                      <p className="text-sm text-gray-600 mt-3 line-clamp-2">{tarea.descripcion}</p>
+                    )}
+
+                    {tarea.subtareas?.length > 0 && (
+                      <div className="mt-4">
+                        <div className="w-full bg-gray-100 rounded-full h-2.5">
+                          <div
+                            className="bg-green-500 h-2.5 rounded-full transition-all duration-300"
+                            style={{ width: `${calcularProgreso(tarea)}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          {calcularProgreso(tarea)}% completado
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="mt-4 space-y-2">
+                      {tarea.fechaLimite && (
+                        <div className="flex items-center text-sm">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          <span className={`${estaAtrasada(tarea.fechaLimite) ? 'text-red-500' : 'text-gray-500'}`}>
+                            {new Date(tarea.fechaLimite).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+
+                      {tarea.asignado && (
+                        <div className="flex items-center text-sm text-gray-500">
+                          <Users className="w-4 h-4 mr-2" />
+                          {tarea.asignado}
+                        </div>
+                      )}
+
+                      <div className="flex items-center text-sm">
+                        <Tag className="w-4 h-4 mr-2" />
+                        <span className={`px-2 py-1 rounded-full text-xs ${getPrioridadColor(tarea.prioridad)}`}>
+                          {tarea.prioridad}
+                    </span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+      
       {/* Modal crear tarea */}
       <AnimatePresence>
         {showCrearTarea && (
@@ -208,23 +605,54 @@ export default function BoardPage() {
               exit={{ opacity: 0 }}
             />
             <motion.div
-              className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90%] md:w-[500px] rounded-3xl border border-purple-300 overflow-hidden bg-white/30 backdrop-blur-xl shadow-xl p-8 z-50 text-gray-900"
+              className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90%] md:w-[600px] rounded-2xl border border-purple-300 overflow-hidden bg-white/90 backdrop-blur-xl shadow-xl p-8 z-50 text-gray-900"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
             >
               <div className="space-y-4">
                 <h2 className="text-2xl font-bold text-center mb-4">Crear Nueva Tarea</h2>
-                <input type="text" value={newTarea.nombre} onChange={(e) => setNewTarea({ ...newTarea, nombre: e.target.value })} placeholder="Nombre de la tarea" className="w-full p-2 border rounded-lg shadow-md" />
-                <textarea value={newTarea.descripcion} onChange={(e) => setNewTarea({ ...newTarea, descripcion: e.target.value })} placeholder="Descripción de la tarea" className="w-full p-2 border rounded-lg shadow-md" />
-                <input type="date" value={newTarea.fechaLimite} onChange={(e) => setNewTarea({ ...newTarea, fechaLimite: e.target.value })} className="w-full p-2 border rounded-lg shadow-md" />
-                <select value={newTarea.prioridad} onChange={(e) => setNewTarea({ ...newTarea, prioridad: e.target.value })} className="w-full p-2 border rounded-lg shadow-md">
+                <input 
+                  type="text" 
+                  value={newTarea.nombre} 
+                  onChange={(e) => setNewTarea({ ...newTarea, nombre: e.target.value })} 
+                  placeholder="Nombre de la tarea" 
+                  className="w-full p-3 border-2 border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200" 
+                />
+                <textarea 
+                  value={newTarea.descripcion} 
+                  onChange={(e) => setNewTarea({ ...newTarea, descripcion: e.target.value })} 
+                  placeholder="Descripción de la tarea" 
+                  className="w-full p-3 border-2 border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200" 
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <input 
+                    type="date" 
+                    value={newTarea.fechaLimite} 
+                    onChange={(e) => setNewTarea({ ...newTarea, fechaLimite: e.target.value })} 
+                    className="w-full p-3 border-2 border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200" 
+                  />
+                  <select 
+                    value={newTarea.prioridad} 
+                    onChange={(e) => setNewTarea({ ...newTarea, prioridad: e.target.value })} 
+                    className="w-full p-3 border-2 border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200"
+                  >
                   <option value="Baja">Baja</option>
                   <option value="Media">Media</option>
                   <option value="Alta">Alta</option>
                 </select>
-                <input type="text" value={newTarea.asignado} onChange={(e) => setNewTarea({ ...newTarea, asignado: e.target.value })} placeholder="Asignado a..." className="w-full p-2 border rounded-lg shadow-md" />
-                <button onClick={agregarTarea} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-md">
+                </div>
+                <input 
+                  type="text" 
+                  value={newTarea.asignado} 
+                  onChange={(e) => setNewTarea({ ...newTarea, asignado: e.target.value })} 
+                  placeholder="Asignado a..." 
+                  className="w-full p-3 border-2 border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200" 
+                />
+                <button 
+                  onClick={agregarTarea} 
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-4 rounded-lg shadow-sm transition duration-200"
+                >
                   Crear Tarea
                 </button>
               </div>
@@ -235,44 +663,191 @@ export default function BoardPage() {
 
       {/* Modal vista tarea */}
       <AnimatePresence>
-        {selectedTarea && (
+      {selectedTarea && (
           <>
             <motion.div
               className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
               onClick={() => setSelectedTarea(null)}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
             />
-            <motion.div
-              className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90%] md:w-[500px] rounded-3xl border border-purple-300 overflow-hidden bg-white/30 backdrop-blur-xl shadow-xl p-8 z-50 text-gray-900"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-            >
-              <div className="text-center">
-                <h2 className="text-3xl font-bold mb-4">{selectedTarea.nombre}</h2>
-                <p className="mb-2"><strong>Descripción:</strong> {selectedTarea.descripcion || 'Sin descripción'}</p>
-                <p className="mb-2"><strong>Fecha límite:</strong> {selectedTarea.fechaLimite || 'No establecida'}</p>
-                <p className="mb-2">
-                  <strong>Prioridad:</strong>{' '}
-                  <span className={selectedTarea.prioridad === 'Alta' ? 'text-red-600' : selectedTarea.prioridad === 'Media' ? 'text-yellow-600' : 'text-green-600'}>
-                    {selectedTarea.prioridad}
-                  </span>
-                </p>
-                <p className="mb-6"><strong>Asignado a:</strong> {selectedTarea.asignado || 'No asignado'}</p>
+      <motion.div
+              className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[95%] md:w-[700px] h-[80vh] rounded-2xl border-4 border-purple-300 overflow-hidden bg-white/60 backdrop-blur-xl shadow-2xl z-50 text-gray-900"
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.8 }}
+        role="dialog"
+        aria-labelledby="modal-title"
+        aria-describedby="modal-description"
+      >
+              <div className="h-full overflow-y-auto px-8">
+        <div className="mt-6 text-left">
+                  <div className="flex items-center space-x-4 mb-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedTarea.completada ?? false}
+                      onChange={() => handleTareaCompletion(selectedTarea)}
+                      className="w-5 h-5 rounded-md border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                    <h2 className={`text-2xl font-bold ${selectedTarea.completada ? 'line-through text-gray-500' : ''}`}>
+                      {selectedTarea.nombre}
+                    </h2>
+                  </div>
+                  {selectedTarea.descripcion && (
+                    <p className={`text-gray-600 mb-4 ${selectedTarea.completada ? 'line-through' : ''}`}>
+                      {selectedTarea.descripcion}
+                    </p>
+                  )}
 
-                <button
-                  onClick={() => setSelectedTarea(null)}
-                  className="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg"
-                >
-                  Cerrar
-                </button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+                  {/* Barra de progreso */}
+                  <div className="mb-6">
+                    <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                      <div
+                        className="bg-green-500 h-4 transition-all duration-300"
+                        style={{ width: `${calcularProgreso(selectedTarea)}%` }}
+                      />
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {calcularProgreso(selectedTarea)}% completado
+                    </p>
+                  </div>
+
+          {/* Formulario para agregar nuevas subtareas */}
+                  <div className="space-y-4 pb-4">
+                    <div className="flex space-x-3">
+            <input
+              type="text"
+              value={nuevaSubtarea}
+              onChange={(e) => setNuevaSubtarea(e.target.value)}
+              placeholder="Nueva subtarea"
+              className="flex-1 p-3 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200"
+              aria-label="Escribir nueva subtarea"
+            />
+            <button
+              onClick={agregarSubtarea}
+              className="bg-green-500 hover:bg-green-600 text-white font-bold px-5 py-3 rounded-lg shadow-md transform hover:scale-105 transition duration-150 ease-in-out"
+              aria-label="Agregar subtarea"
+            >
+              +
+            </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <select
+                        value={nuevaSubtareaPrioridad}
+                        onChange={(e) => setNuevaSubtareaPrioridad(e.target.value)}
+                        className="p-2 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      >
+                        <option value="Baja">Baja</option>
+                        <option value="Media">Media</option>
+                        <option value="Alta">Alta</option>
+                      </select>
+                      <input
+                        type="date"
+                        value={nuevaSubtareaFechaLimite}
+                        onChange={(e) => setNuevaSubtareaFechaLimite(e.target.value)}
+                        className="p-2 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
+          </div>
+
+          {/* Lista de subtareas */}
+                  <ul className="space-y-2 pb-8">
+            {selectedTarea.subtareas && selectedTarea.subtareas.map((sub: any) => (
+              <motion.li 
+                key={sub.id}
+                className="bg-white p-3 rounded-lg shadow-sm"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  checked={sub.completada}
+                  onChange={() => handleSubtareaChange(sub)}
+                  className="rounded-md border-gray-300 text-green-500"
+                  aria-label={`Marcar subtarea "${sub.nombre}" como completada`}
+                />
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                <span className={sub.completada ? 'line-through text-gray-500' : ''}>
+                  {sub.nombre}
+                </span>
+                      <span className={`px-2 py-1 rounded-full text-xs ${getPrioridadColor(sub.prioridad)}`}>
+                        {sub.prioridad}
+                      </span>
+                      {sub.fechaLimite && (
+                        <span className={`text-xs ${estaAtrasada(sub.fechaLimite) ? 'text-red-500' : 'text-gray-500'}`}>
+                          {new Date(sub.fechaLimite).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                    {sub.comentarios?.length > 0 && (
+                      <div className="mt-1 text-sm text-gray-500">
+                        {sub.comentarios[sub.comentarios.length - 1].texto}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setMostrarComentarios({ ...mostrarComentarios, [sub.id]: !mostrarComentarios[sub.id] })}
+                      className="text-blue-500 hover:text-blue-700"
+                    >
+                      💬
+                    </button>
+                    <button
+                      onClick={() => eliminarSubtarea(sub.id)}
+                      className="text-red-500 hover:text-red-700 text-lg font-bold"
+                      aria-label="Eliminar subtarea"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Sección de comentarios */}
+                {mostrarComentarios[sub.id] && (
+                  <div className="mt-3 pl-8 border-t pt-3">
+                    <div className="space-y-2">
+                      {sub.comentarios?.map((comentario: any) => (
+                        <div key={comentario.id} className="text-sm text-gray-600">
+                          <div className="flex justify-between">
+                            <span>{comentario.texto}</span>
+                            <span className="text-xs text-gray-400">
+                              {new Date(comentario.fecha).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-2 flex space-x-2">
+                      <input
+                        type="text"
+                        value={nuevaSubtareaComentario}
+                        onChange={(e) => setNuevaSubtareaComentario(e.target.value)}
+                        placeholder="Nuevo comentario"
+                        className="flex-1 p-2 text-sm border rounded"
+                      />
+                      <button
+                        onClick={() => agregarComentario(sub.id)}
+                        className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                      >
+                        Comentar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </motion.li>
+            ))}
+          </ul>
+                </div>
+        </div>
+      </motion.div>
+    </>
+  )}
+</AnimatePresence>
     </div>
   );
 }
