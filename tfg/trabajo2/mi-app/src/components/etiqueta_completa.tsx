@@ -6,10 +6,8 @@ interface EtiquetaCompletaProps {
 
 export default function EtiquetaCompleta({ children }: EtiquetaCompletaProps) {
   return (
-    <div className="min-h-[calc(100vh-6rem)] w-full mx-auto p-4">
-      <div className="h-full bg-gray-800/50 backdrop-blur-sm p-8 rounded-xl shadow-xl border border-gray-700">
-        {children}
-      </div>
+    <div className="flex w-full max-w-7xl mx-auto rounded-3xl border border-purple-300 overflow-hidden bg-white/30 backdrop-blur-xl shadow-xl h-fit mt-10">
+      {children}
     </div>
   );
 }    

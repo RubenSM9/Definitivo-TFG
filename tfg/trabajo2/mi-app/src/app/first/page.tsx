@@ -7,6 +7,7 @@ import TareaPrevia from '@/components/tarea_previa';
 import { auth } from '@/firebase/firebaseConfig';
 import { getUserCards, deleteCard } from '@/firebase/firebaseOperations';
 import Image from 'next/image';
+import EtiquetaCompleta from '@/components/etiqueta_completa';
 
 export default function FirstPage() {
   const router = useRouter();
@@ -51,56 +52,56 @@ export default function FirstPage() {
   });
 
   return (
-    <div className="flex w-full max-w-7xl rounded-3xl border border-purple-300 overflow-hidden bg-white/30 backdrop-blur-xl shadow-xl">
-      {/* Sidebar izquierda */}
-      <div className="w-full md:w-1/4 p-6 bg-white/50 backdrop-blur-lg text-gray-800 rounded-l-3xl shadow-inner">
-        <h2 className="text-xl font-semibold mb-6">Filtros</h2>
+      <EtiquetaCompleta>
+        {/* Sidebar izquierda */}
+        <div className="w-full md:w-1/4 p-6 bg-white/50 backdrop-blur-lg text-gray-800 rounded-l-3xl shadow-inner">
+          <h2 className="text-xl font-semibold mb-6">Filtros</h2>
 
-        <div className="mb-6">
-          <label className="block mb-2 text-sm font-medium">Buscar por nombre</label>
-          <input
-            type="text"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full px-4 py-2 rounded-xl bg-white border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-            placeholder="Buscar..."
-          />
-        </div>
-
-        <div className="mb-4">
-          <label className="block mb-2 text-sm font-medium">Prioridad</label>
-          <select
-            value={filtroPrioridad}
-            onChange={(e) => setFiltroPrioridad(e.target.value)}
-            className="w-full px-4 py-2 rounded-xl bg-white border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-          >
-            <option value="">Todas</option>
-            <option value="baja">Baja</option>
-            <option value="media">Media</option>
-            <option value="alta">Alta</option>
-          </select>
-        </div>
-
-        {error && (
-          <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
-          </div>
-        )}
-      </div>
-
-      {/* Contenido derecho */}
-      <div className="w-full md:w-3/4 p-6 bg-white/40 backdrop-blur-lg rounded-r-3xl">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tarjetasFiltradas.map((tarjeta) => (
-            <TareaPrevia
-              key={tarjeta.id}
-              tarjeta={tarjeta}
-              onDelete={() => handleDelete(tarjeta.id)}
+          <div className="mb-6">
+            <label className="block mb-2 text-sm font-medium">Buscar por nombre</label>
+            <input
+              type="text"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              className="w-full px-4 py-2 rounded-xl bg-white border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+              placeholder="Buscar..."
             />
-          ))}
-          <TareaCrear />
+          </div>
+
+          <div className="mb-4">
+            <label className="block mb-2 text-sm font-medium">Prioridad</label>
+            <select
+              value={filtroPrioridad}
+              onChange={(e) => setFiltroPrioridad(e.target.value)}
+              className="w-full px-4 py-2 rounded-xl bg-white border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+            >
+              <option value="">Todas</option>
+              <option value="baja">Baja</option>
+              <option value="media">Media</option>
+              <option value="alta">Alta</option>
+            </select>
+          </div>
+
+          {error && (
+            <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+              {error}
+            </div>
+          )}
         </div>
-      </div>
-    </div>
+
+        {/* Contenido derecho */}
+        <div className="w-full md:w-3/4 p-6 bg-white/40 backdrop-blur-lg rounded-r-3xl">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {tarjetasFiltradas.map((tarjeta) => (
+              <TareaPrevia
+                key={tarjeta.id}
+                tarjeta={tarjeta}
+                onDelete={() => handleDelete(tarjeta.id)}
+              />
+            ))}
+            <TareaCrear />
+          </div>
+        </div>
+      </EtiquetaCompleta>
   );
 }
