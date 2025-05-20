@@ -1,11 +1,7 @@
-<<<<<<< HEAD
 import Image from 'next/image'
 import Link from 'next/link'
-=======
-import Image from 'next/image';
-import Link from 'next/link';
 
->>>>>>> 840b7e1 (Ahora si)
+
 
 export default function About() {
   return (
@@ -29,7 +25,7 @@ export default function About() {
           Nuestro objetivo es simple: ayudarte a planificar, priorizar y conquistar tu día con estilo, tecnología y un toque eléctrico.
         </p>
       </div>
-<<<<<<< HEAD
+
 
       <div className="text-center mt-16">
         <h2 className="text-3xl font-semibold text-white mb-6">¿Te unes a Zentasker?</h2>
@@ -45,8 +41,5 @@ export default function About() {
       </div>
     </div>
   )
-=======
-    </>
-  );
->>>>>>> 840b7e1 (Ahora si)
+
 }
