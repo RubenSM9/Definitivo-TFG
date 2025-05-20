@@ -1,6 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+<<<<<<< HEAD
+=======
+
+>>>>>>> 840b7e1 (Ahora si)
 
 
 export default function TareasPage() {
@@ -91,7 +95,10 @@ export default function TareasPage() {
           />
         </div>
       </div>
+<<<<<<< HEAD
 
+=======
+>>>>>>> 840b7e1 (Ahora si)
     </>
   );
 }

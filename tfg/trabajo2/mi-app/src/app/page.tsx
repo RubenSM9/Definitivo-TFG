@@ -1,5 +1,11 @@
+<<<<<<< HEAD
 import Link from 'next/link'
 import Button from '../components/button'
+=======
+'use client';
+
+import Link from 'next/link';
+>>>>>>> 840b7e1 (Ahora si)
 
 export default function Home() {
   return (
@@ -9,6 +15,7 @@ export default function Home() {
         Zentasker ⚡
       </h2>
 
+<<<<<<< HEAD
       <p className="mt-6 text-lg md:text-xl font-extrabold text-black max-w-2xl">
         Tu nuevo gestor de tareas con poder eléctrico. <br />Organiza. Prioriza. ¡Domina tu día con estilo!
       </p>
@@ -20,6 +27,8 @@ export default function Home() {
           </Button>
         </Link>
       </div>
+=======
+>>>>>>> 840b7e1 (Ahora si)
     </div>
   )
 }

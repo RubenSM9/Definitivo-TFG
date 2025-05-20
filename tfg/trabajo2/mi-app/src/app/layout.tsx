@@ -4,7 +4,11 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "../components/header";
+<<<<<<< HEAD
 import Footer from "../components/footer"; 
+=======
+import Footer from "../components/footer";
+>>>>>>> 840b7e1 (Ahora si)
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,6 +31,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
+<<<<<<< HEAD
     <html lang="es">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <main
@@ -47,6 +52,27 @@ export default function RootLayout({
 
           <Footer />
         </main>
+=======
+    <html lang="es" className="h-full">
+      <body
+        className={`
+          ${geistSans.variable} ${geistMono.variable} 
+          antialiased text-white h-full
+        `}
+      >
+        <div className="flex flex-col min-h-screen">
+          <Header />
+
+          {/* Esto asegura que el contenido ocupe el espacio restante */}
+          <main className="flex-grow">
+            <div className="w-full px-4 sm:px-6 lg:px-8 pt-24">
+              {children}
+            </div>
+          </main>
+
+          <Footer />
+        </div>
+>>>>>>> 840b7e1 (Ahora si)
       </body>
     </html>
   );
