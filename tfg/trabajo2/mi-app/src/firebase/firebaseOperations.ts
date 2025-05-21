@@ -260,4 +260,45 @@ export const addComment = async (cardId: string, taskId: string, subtaskId: stri
     console.error('Error al añadir comentario:', error);
     throw error;
   }
+};
+
+// Obtener todos los correos de usuarios registrados
+export const getAllUserEmails = async () => {
+  try {
+    const usersSnapshot = await getDocs(collection(db, 'users'));
+    return usersSnapshot.docs.map(doc => doc.data().email).filter(Boolean);
+  } catch (error) {
+    console.error('Error al obtener los correos de usuarios:', error);
+    throw error;
+  }
+}
+
+// Obtener tarjetas compartidas con un correo
+export const getCardsSharedWithEmail = async (email) => {
+  try {
+    const cardsQuery = query(collection(db, 'cards'), where('compartidoCon', 'array-contains', email));
+    const querySnapshot = await getDocs(cardsQuery);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error('Error al obtener tarjetas compartidas:', error);
+    throw error;
+  }
+};
+
+// Obtener una tarjeta por su ID
+export const getCardById = async (cardId) => {
+  try {
+    const cardRef = doc(db, 'cards', cardId);
+    const cardSnap = await getDoc(cardRef);
+    if (cardSnap.exists()) {
+      return { id: cardSnap.id, ...cardSnap.data() };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error al obtener la tarjeta por ID:', error);
+    throw error;
+  }
 }; 

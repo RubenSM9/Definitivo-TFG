@@ -99,3 +99,22 @@ body {
     background-color: rgba(24, 0, 48, 0.3);
   }
 }
+
+/* Ocultar scrollbars pero mantener scroll funcional */
+/* Para navegadores basados en Webkit (Chrome, Edge, Safari) */
+*::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+  background: transparent;
+}
+
+/* Para Firefox */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Para Internet Explorer y Edge Legacy */
+*::-ms-scrollbar {
+  display: none;
+}

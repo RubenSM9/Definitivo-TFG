@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import TareaCrear from '@/components/tarea_crear';
 import TareaPrevia from '@/components/tarea_previa';
 import { auth } from '@/firebase/firebaseConfig';
-import { getUserCards, deleteCard } from '@/firebase/firebaseOperations';
+import { getUserCards, deleteCard, getCardsSharedWithEmail } from '@/firebase/firebaseOperations';
 import Image from 'next/image';
 import EtiquetaCompleta from '@/components/etiqueta_completa';
 
@@ -26,9 +26,14 @@ export default function FirstPage() {
         router.push('/login');
         return;
       }
-
-      const cards = await getUserCards(auth.currentUser.uid);
-      setTarjetas(cards);
+      const [cardsPropias, cardsCompartidas] = await Promise.all([
+        getUserCards(auth.currentUser.uid),
+        getCardsSharedWithEmail(auth.currentUser.email)
+      ]);
+      // Unir y evitar duplicados por id
+      const ids = new Set();
+      const todas = [...cardsPropias, ...cardsCompartidas.filter(c => !cardsPropias.some(p => p.id === c.id))];
+      setTarjetas(todas);
     } catch (error) {
       console.error('Error al cargar tarjetas:', error);
       setError('Error al cargar las tarjetas. Por favor, intenta de nuevo.');

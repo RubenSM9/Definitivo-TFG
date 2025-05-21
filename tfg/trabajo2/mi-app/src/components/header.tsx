@@ -5,12 +5,13 @@ import { useEffect, useState, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { auth } from '@/firebase/firebaseConfig';
 import Image from 'next/image';
+import { LayoutDashboard, LogOut, LogIn, UserPlus, Menu } from 'lucide-react';
 
 export default function Header() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
-  const [aboutOpen, setAboutOpen] = useState(false);
-  const aboutRef = useRef(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -26,10 +27,10 @@ export default function Header() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        aboutRef.current &&
-        !(aboutRef.current as HTMLElement).contains(event.target as Node)
+        menuRef.current &&
+        !(menuRef.current as HTMLElement).contains(event.target as Node)
       ) {
-        setAboutOpen(false);
+        setMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -47,7 +48,7 @@ export default function Header() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-fuchsia-500/20">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-2">
           <Image
             src="/images/logo_lila-removebg-preview.png"
@@ -57,87 +58,76 @@ export default function Header() {
           />
         </Link>
 
-        <nav className="flex items-center gap-6 text-white relative">
-          <Link
-            href="/funciones/tareas"
-            className={`hover:text-cyan-300 transition ${
-              pathname === '/funciones/tareas' ? 'text-cyan-400 font-semibold' : ''
-            }`}
-          >
-            Funciones
-          </Link>
-
-          <Link
-            href="/planes/premium"
-            className={`hover:text-cyan-300 transition ${
-              pathname === '/planes/premium' ? 'text-cyan-400 font-semibold' : ''
-            }`}
-          >
-            Planes
-          </Link>
-
-          <div className="relative" ref={aboutRef}>
+        <nav className="flex items-center gap-4 sm:gap-6 text-white relative ml-auto">
+          {isAuthenticated && (
+            <div className="text-sm text-gray-500 font-bold bg-white/10 px-4 py-2 rounded-full hidden sm:block">
+              {auth.currentUser?.email}
+            </div>
+          )}
+          <div className="relative" ref={menuRef}>
             <button
-              onClick={() => setAboutOpen(!aboutOpen)}
-              className={`hover:text-cyan-300 transition ${
-                pathname?.startsWith('/sobre-nosotros') ? 'text-cyan-400 font-semibold' : ''
-              }`}
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-full shadow transition flex items-center justify-center"
             >
-              Sobre Nosotros
+              <Menu className="w-6 h-6 text-purple-500" />
             </button>
-            {aboutOpen && (
-              <div className="absolute top-full mt-2 w-48 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50">
+            {menuOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50">
                 <Link
-                  href="/sobre-nosotros/historia"
-                  className="block px-4 py-2 text-sm text-gray-200 hover:bg-cyan-600 transition"
+                  href="/funciones/tareas"
+                  className="block px-4 py-2 text-sm text-gray-200 hover:bg-purple-600 transition"
                 >
-                  Nuestra historia
+                  Funciones
                 </Link>
                 <Link
-                  href="/sobre-nosotros/Equipo"
-                  className="block px-4 py-2 text-sm text-gray-200 hover:bg-cyan-600 transition"
+                  href="/planes/premium"
+                  className="block px-4 py-2 text-sm text-gray-200 hover:bg-purple-600 transition"
                 >
-                  El equipo
+                  Planes
+                </Link>
+                <Link
+                  href="/sobre-nosotros/historia"
+                  className="block px-4 py-2 text-sm text-gray-200 hover:bg-purple-600 transition"
+                >
+                  Sobre Nosotros
+                </Link>
+                <Link
+                  href="/contacto/PaginaContacto"
+                  className="block px-4 py-2 text-sm text-gray-200 hover:bg-purple-600 transition"
+                >
+                  Contacto
                 </Link>
               </div>
             )}
           </div>
 
-          <Link
-            href="/contacto/PaginaContacto"
-            className={`hover:text-cyan-300 transition ${
-              pathname === '/contacto/PaginaContacto' ? 'text-cyan-400 font-semibold' : ''
-            }`}
-          >
-            Contacto
-          </Link>
-
           {authChecked && (
             !isAuthenticated ? (
               <>
-                <Link href="/login">
-                  <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full text-sm shadow transition">
-                    Iniciar sesión
+                <Link href="/register">
+                  <button className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-full shadow transition flex items-center justify-center">
+                    <UserPlus className="w-6 h-6 text-pink-500" />
                   </button>
                 </Link>
-                <Link href="/register">
-                  <button className="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-full text-sm shadow transition">
-                    Registrarse
+
+                <Link href="/login">
+                  <button className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-full shadow transition flex items-center justify-center">
+                    <LogIn className="w-6 h-6 text-blue-500" />
                   </button>
                 </Link>
               </>
             ) : (
               <>
                 <Link href="/first">
-                  <button className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-full text-sm shadow transition">
-                    Ir al panel
+                  <button className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-full shadow transition flex items-center justify-center">
+                    <LayoutDashboard className="w-6 h-6 text-blue-500" />
                   </button>
                 </Link>
-                <button
+                <button 
                   onClick={handleLogout}
-                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full text-sm shadow transition"
+                  className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-full shadow transition flex items-center justify-center"
                 >
-                  Cerrar sesión
+                  <LogOut className="w-6 h-6 text-red-500" />
                 </button>
               </>
             )

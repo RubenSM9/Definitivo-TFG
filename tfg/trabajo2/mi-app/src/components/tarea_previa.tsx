@@ -1,6 +1,6 @@
 'use client';
 
-import { Settings, Trash2 } from 'lucide-react';
+import { Settings, Trash2, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/firebase/firebaseConfig';
 import { deleteCard } from '@/firebase/firebaseOperations';
@@ -10,6 +10,7 @@ interface Tarjeta {
   nombre: string;
   prioridad: string;
   tareas: any[];
+  compartidoCon?: string[];
 }
 
 export default function TareaPrevia({
@@ -20,6 +21,7 @@ export default function TareaPrevia({
   onDelete: () => void;
 }) {
   const router = useRouter();
+  const isCompartida = tarjeta.compartidoCon && auth.currentUser && tarjeta.compartidoCon.includes(auth.currentUser.email);
 
   const irAVistaTareas = () => {
     router.push(`/tarea/${tarjeta.id}`);
@@ -44,17 +46,24 @@ export default function TareaPrevia({
   };
 
   return (
-    <div className="bg-white/50 backdrop-blur-md border border-purple-200 rounded-2xl shadow-lg p-4 flex flex-col justify-between transition hover:shadow-xl w-full">
+    <div className={`bg-white/50 backdrop-blur-md border rounded-2xl shadow-lg p-4 flex flex-col justify-between transition hover:shadow-xl w-full ${isCompartida ? 'border-blue-400' : 'border-purple-200'}`}>
       
       {/* Parte clicable que lleva a la vista de tareas */}
       <div
         onClick={irAVistaTareas}
         className="flex items-center gap-4 cursor-pointer rounded-xl p-3 transition hover:bg-purple-100"
       >
-        <div className="w-10 h-10 rounded-full border-2 border-purple-400 bg-purple-100 text-purple-800 flex items-center justify-center font-bold text-lg">
+        <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold text-lg ${isCompartida ? 'border-blue-400 bg-blue-100 text-blue-800' : 'border-purple-400 bg-purple-100 text-purple-800'}`}>
           {tarjeta.nombre?.[0]?.toUpperCase() || 'U'}
         </div>
-        <p className="text-base font-semibold text-gray-800">{tarjeta.nombre}</p>
+        <p className="text-base font-semibold text-gray-800 flex items-center gap-2">
+          {tarjeta.nombre}
+          {isCompartida && (
+            <span className="flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-semibold ml-2">
+              <Users className="w-4 h-4" /> Compartida
+            </span>
+          )}
+        </p>
       </div>
 
       {/* Botones de Ajustes y Eliminar */}
