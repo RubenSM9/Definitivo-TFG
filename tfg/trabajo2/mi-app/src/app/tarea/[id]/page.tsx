@@ -18,82 +18,17 @@ import {
   deleteSubtask,
   addComment,
   getAllUserEmails,
-  getCardById
+  getCardById,
+  Task,
+  Subtask,
+  Comment,
+  CardData
 } from '@/firebase/firebaseOperations';
 import EtiquetaCompleta from '@/components/etiqueta_completa';
 
-interface Comentario {
+interface Tarjeta extends CardData {
   id: string;
-  texto: string;
-  fecha: string;
 }
-
-interface Subtarea {
-  id: string;
-  nombre: string;
-  completada: boolean;
-  prioridad: string;
-  fechaLimite?: string;
-  comentarios: Comentario[];
-}
-
-interface Tarea {
-  id: string;
-  nombre: string;
-  descripcion?: string;
-  fechaLimite?: string;
-  prioridad: string;
-  asignado?: string;
-  subtareas: Subtarea[];
-  completada: boolean;
-}
-
-interface Tarjeta {
-  id: string;
-  nombre: string;
-  prioridad: string;
-  tareas: Tarea[];
-  compartidoCon?: string[];
-  userId: string;
-}
-
-
-
-interface Comentario {
-  id: string;
-  texto: string;
-  fecha: string;
-}
-
-interface Subtarea {
-  id: string;
-  nombre: string;
-  completada: boolean;
-  prioridad: string;
-  fechaLimite?: string;
-  comentarios: Comentario[];
-}
-
-interface Tarea {
-  id: string;
-  nombre: string;
-  descripcion?: string;
-  fechaLimite?: string;
-  prioridad: string;
-  asignado?: string;
-  subtareas: Subtarea[];
-  completada: boolean;
-}
-
-interface Tarjeta {
-  id: string;
-  nombre: string;
-  prioridad: string;
-  tareas: Tarea[];
-  compartidoCon?: string[];
-  userId: string;
-}
-
 
 export default function BoardPage() {
   const params = useParams();
@@ -108,10 +43,10 @@ export default function BoardPage() {
     asignado: '',
     etiquetas: [] as string[],
   });
-  const [draggedTarea, setDraggedTarea] = useState<any>(null);
+  const [draggedTarea, setDraggedTarea] = useState<Task | null>(null);
   const [draggedFrom, setDraggedFrom] = useState<string>('');
   const [showCrearTarea, setShowCrearTarea] = useState(false);
-  const [selectedTarea, setSelectedTarea] = useState<any>(null);
+  const [selectedTarea, setSelectedTarea] = useState<Task | null>(null);
   const [nuevaSubtarea, setNuevaSubtarea] = useState('');
   const [nuevaSubtareaPrioridad, setNuevaSubtareaPrioridad] = useState('Media');
   const [nuevaSubtareaFechaLimite, setNuevaSubtareaFechaLimite] = useState('');
@@ -134,7 +69,7 @@ export default function BoardPage() {
   const [loadingCompartir, setLoadingCompartir] = useState(false);
   const [errorCompartir, setErrorCompartir] = useState('');
 
-  const esPropietario = tarjeta && (tarjeta as any).userId === auth.currentUser?.uid;
+  const esPropietario = tarjeta && tarjeta.userId === auth.currentUser?.uid;
 
   // Función para cargar los datos de Firestore
   const cargarDatos = async () => {
@@ -164,15 +99,15 @@ export default function BoardPage() {
     if (tarjeta) {
       const stats = {
         totalTareas: tarjeta.tareas.length,
-        completadas: tarjeta.tareas.filter((t: Tarea) => t.completada).length,
-        pendientes: tarjeta.tareas.filter((t: Tarea) => !t.completada).length,
-        atrasadas: tarjeta.tareas.filter((t: Tarea) => t.fechaLimite && estaAtrasada(t.fechaLimite)).length,
+        completadas: tarjeta.tareas.filter((t: Task) => t.completada).length,
+        pendientes: tarjeta.tareas.filter((t: Task) => !t.completada).length,
+        atrasadas: tarjeta.tareas.filter((t: Task) => t.fechaLimite && estaAtrasada(t.fechaLimite)).length,
       };
       setEstadisticas(stats);
     }
   }, [tarjeta]);
 
-  const handleTareaClick = (tarea: Tarea) => {
+  const handleTareaClick = (tarea: Task) => {
     setSelectedTarea({
       ...tarea,
       completada: tarea.completada ?? false,
@@ -180,7 +115,7 @@ export default function BoardPage() {
     });
   };
 
-  const handleTareaCompletion = async (tarea: Tarea) => {
+  const handleTareaCompletion = async (tarea: Task) => {
     try {
       if (!auth.currentUser) {
         router.push('/login');
@@ -214,23 +149,23 @@ export default function BoardPage() {
     }
   };
 
-  const handleSubtareaChange = useCallback(async (sub: any) => {
+  const handleSubtareaChange = useCallback(async (sub: Subtask) => {
     try {
-      if (!auth.currentUser) {
+      if (!auth.currentUser || !selectedTarea) {
         router.push('/login');
         return;
       }
 
       await updateSubtask(id, selectedTarea.id, sub.id, {
         completada: !sub.completada,
-        nombre: sub.nombre,
+        titulo: sub.titulo,
         prioridad: sub.prioridad,
         fechaLimite: sub.fechaLimite
       });
 
       // Solo actualizar el estado de la tarea si tiene subtareas
       if (selectedTarea.subtareas && selectedTarea.subtareas.length > 0) {
-        const todasCompletadas = selectedTarea.subtareas.every((s: Subtarea) => 
+        const todasCompletadas = selectedTarea.subtareas.every((s: Subtask) => 
           s.id === sub.id ? !sub.completada : s.completada
         );
 
@@ -243,21 +178,27 @@ export default function BoardPage() {
         }
 
         // Actualizar el estado local
-        setSelectedTarea((prev: Tarea) => ({
-          ...prev,
-          subtareas: prev.subtareas.map((s: Subtarea) => 
-            s.id === sub.id ? { ...s, completada: !s.completada } : s
-          ),
-          completada: todasCompletadas
-        }));
+        setSelectedTarea(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            subtareas: prev.subtareas.map((s: Subtask) => 
+              s.id === sub.id ? { ...s, completada: !s.completada } : s
+            ),
+            completada: todasCompletadas
+          };
+        });
       } else {
         // Si no hay subtareas, solo actualizar la subtarea
-        setSelectedTarea((prev: Tarea) => ({
-          ...prev,
-          subtareas: prev.subtareas.map((s: Subtarea) => 
-            s.id === sub.id ? { ...s, completada: !s.completada } : s
-          )
-        }));
+        setSelectedTarea(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            subtareas: prev.subtareas.map((s: Subtask) => 
+              s.id === sub.id ? { ...s, completada: !s.completada } : s
+            )
+          };
+        });
       }
 
       await cargarDatos();
@@ -278,8 +219,12 @@ export default function BoardPage() {
       }
 
       const tareaData = {
-        ...newTarea,
-        id: Date.now().toString(),
+        titulo: newTarea.nombre,
+        nombre: newTarea.nombre,
+        descripcion: newTarea.descripcion,
+        fechaLimite: newTarea.fechaLimite,
+        prioridad: newTarea.prioridad,
+        asignado: newTarea.asignado,
         subtareas: [],
         completada: false
       };
@@ -291,7 +236,7 @@ export default function BoardPage() {
         if (!prev) return prev;
         return {
           ...prev,
-          tareas: [...prev.tareas, tareaData]
+          tareas: [...prev.tareas, { ...tareaData, id: Date.now().toString(), createdAt: new Date().toISOString() }]
         };
       });
 
@@ -352,7 +297,7 @@ export default function BoardPage() {
   
   const eliminarSubtarea = async (subId: string) => {
     try {
-      if (!auth.currentUser) {
+      if (!auth.currentUser || !selectedTarea) {
         router.push('/login');
         return;
       }
@@ -366,7 +311,7 @@ export default function BoardPage() {
   
 
   const agregarSubtarea = async () => {
-    if (!nuevaSubtarea.trim()) return;
+    if (!nuevaSubtarea.trim() || !selectedTarea) return;
 
     try {
       if (!auth.currentUser) {
@@ -374,29 +319,27 @@ export default function BoardPage() {
         return;
       }
 
-      // Asegurarnos de que la tarea seleccionada tenga un array de subtareas
-      if (!selectedTarea.subtareas) {
-        selectedTarea.subtareas = [];
-      }
-
       const nuevaSubtareaData = {
-        id: Date.now().toString(),
-      nombre: nuevaSubtarea,
-      completada: false,
+        titulo: nuevaSubtarea,
+        nombre: nuevaSubtarea,
+        completada: false,
         prioridad: nuevaSubtareaPrioridad,
         fechaLimite: nuevaSubtareaFechaLimite,
-        comentarios: []
+        comments: []
       };
 
       await addSubtask(id, selectedTarea.id, nuevaSubtareaData);
 
       // Actualizar el estado local inmediatamente
-      setSelectedTarea((prev: Tarea) => ({
-        ...prev,
-        subtareas: [...(prev.subtareas || []), nuevaSubtareaData]
-      }));
+      setSelectedTarea(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          subtareas: [...(prev.subtareas || []), { ...nuevaSubtareaData, id: Date.now().toString(), createdAt: new Date().toISOString() }]
+        };
+      });
 
-    setNuevaSubtarea('');
+      setNuevaSubtarea('');
       setNuevaSubtareaPrioridad('Media');
       setNuevaSubtareaFechaLimite('');
       
@@ -408,7 +351,7 @@ export default function BoardPage() {
   };
 
   const agregarComentario = async (subId: string) => {
-    if (!nuevaSubtareaComentario.trim()) return;
+    if (!nuevaSubtareaComentario.trim() || !selectedTarea) return;
 
     try {
       if (!auth.currentUser) {
@@ -416,10 +359,13 @@ export default function BoardPage() {
         return;
       }
 
-      await addComment(id, selectedTarea.id, subId, {
+      const commentData = {
         texto: nuevaSubtareaComentario,
+        userId: auth.currentUser.uid,
         fecha: new Date().toISOString()
-      });
+      };
+
+      await addComment(id, selectedTarea.id, subId, commentData);
 
       setNuevaSubtareaComentario('');
       await cargarDatos();
@@ -446,7 +392,7 @@ export default function BoardPage() {
     return new Date(fechaLimite) < new Date();
   };
 
-  const tareasFiltradas = tarjeta?.tareas.filter((tarea: Tarea) => {
+  const tareasFiltradas = tarjeta?.tareas.filter((tarea: Task) => {
     const coincideBusqueda = tarea.nombre.toLowerCase().includes(filtros.busqueda.toLowerCase());
     const coincidePrioridad = filtros.prioridad ? tarea.prioridad === filtros.prioridad : true;
     const coincideEstado = filtros.estado ? 

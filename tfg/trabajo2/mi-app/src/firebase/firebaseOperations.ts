@@ -37,21 +37,28 @@ export interface CardData {
 export interface Task {
   id: string;
   titulo: string;
+  nombre: string;
   descripcion: string;
   completada: boolean;
   subtareas: Subtask[];
   createdAt: string;
   updatedAt?: string;
   imagen?: string;
+  fechaLimite?: string;
+  prioridad: string;
+  asignado?: string;
 }
 
 export interface Subtask {
   id: string;
   titulo: string;
+  nombre: string;
   completada: boolean;
   comments: Comment[];
   createdAt: string;
   updatedAt?: string;
+  prioridad: string;
+  fechaLimite?: string;
 }
 
 export interface Comment {
@@ -59,6 +66,7 @@ export interface Comment {
   texto: string;
   userId: string;
   createdAt: string;
+  fecha: string;
 }
 
 // Operaciones de usuario
