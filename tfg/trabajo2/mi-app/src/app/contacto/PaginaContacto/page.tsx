@@ -1,8 +1,10 @@
 'use client';
+
 import React, { useState } from 'react';
 
 const ContactPage: React.FC = () => {
   const [form, setForm] = useState({ name: '', email: '', message: '' });
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -10,15 +12,42 @@ const ContactPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Mensaje enviado correctamente ✨');
-    setForm({ name: '', email: '', message: '' });
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: 'zentasker@gmail.com',
+          subject: `Nuevo mensaje de ${form.name}`,
+          html: `
+            <p><strong>Nombre:</strong> ${form.name}</p>
+            <p><strong>Correo:</strong> ${form.email}</p>
+            <p><strong>Mensaje:</strong></p>
+            <p>${form.message}</p>
+          `,
+        }),
+      });
+
+      if (res.ok) {
+        alert('✅ Mensaje enviado correctamente');
+        setForm({ name: '', email: '', message: '' });
+      } else {
+        alert('❌ Ocurrió un error al enviar el mensaje');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('❌ Error de red al intentar enviar el mensaje');
+    }
+
+    setLoading(false);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-[#1a0029] to-black p-8 text-white">
       <h1 className="text-4xl font-bold text-purple-400 text-center mb-6">Contáctanos</h1>
 
-      {/* Teléfono directo */}
       <div className="max-w-xl mx-auto bg-[#2a003f] border border-purple-700 rounded-xl p-6 mb-10 text-center shadow-md">
         <p className="text-lg mb-2 text-purple-200">¿Prefieres hablar con un humano?</p>
         <a
@@ -30,7 +59,6 @@ const ContactPage: React.FC = () => {
         <p className="text-sm mt-2 text-gray-400">Sin robots. Sin menús. Solo atención directa.</p>
       </div>
 
-      {/* Formulario */}
       <form
         onSubmit={handleSubmit}
         className="max-w-xl mx-auto bg-[#1c1c1c] border border-purple-700 rounded-2xl p-8 shadow-lg space-y-6"
@@ -69,9 +97,10 @@ const ContactPage: React.FC = () => {
         </div>
         <button
           type="submit"
+          disabled={loading}
           className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-md transition"
         >
-          Enviar mensaje
+          {loading ? 'Enviando...' : 'Enviar mensaje'}
         </button>
       </form>
     </div>
