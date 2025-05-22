@@ -2,11 +2,16 @@ import { NextResponse } from 'next/server';
 import sgMail from '@sendgrid/mail';
 
 // Configurar SendGrid con la API key
-sgMail.setApiKey(process.env.SENDGRID_API_KEY || '');
+const apiKey = process.env.SENDGRID_API_KEY || '';
+console.log('API Key configurada:', apiKey ? 'Sí' : 'No');
+console.log('EMAIL_FROM configurado:', process.env.EMAIL_FROM || 'No configurado');
+sgMail.setApiKey(apiKey);
 
 export async function POST(request: Request) {
+  console.log('API /api/send-email llamada');
   try {
     const { email, subject, message } = await request.json();
+    console.log('Datos recibidos:', { email, subject, message });
 
     const msg = {
       to: email,
@@ -23,10 +28,25 @@ export async function POST(request: Request) {
       `,
     };
 
-    await sgMail.send(msg);
+    console.log('Configuración del email:', {
+      to: msg.to,
+      from: msg.from,
+      subject: msg.subject
+    });
+
+    console.log('Enviando email con SendGrid...');
+    const response = await sgMail.send(msg);
+    console.log('Respuesta de SendGrid:', response);
+    console.log('Email enviado correctamente');
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error sending email:', error);
+  } catch (error: any) {
+    console.error('Error detallado al enviar email:', error);
+    if (error.response) {
+      console.error('Detalles del error de SendGrid:', {
+        body: error.response.body,
+        statusCode: error.response.statusCode
+      });
+    }
     return NextResponse.json(
       { success: false, error: 'Error al enviar el email' },
       { status: 500 }
