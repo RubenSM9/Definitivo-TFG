@@ -904,6 +904,7 @@ export default function BoardPage() {
                         >
                           Comentar
                         </button>
+                        
                       )}
                     </div>
                   </div>
