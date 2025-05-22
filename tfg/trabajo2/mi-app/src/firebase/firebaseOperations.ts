@@ -12,9 +12,55 @@ import {
   getDocs,
   deleteDoc
 } from 'firebase/firestore';
+import { v4 as uuidv4 } from 'uuid';
+
+// Types
+interface UserData {
+  displayName: string;
+  email: string;
+  photoURL: string | null;
+  settings: {
+    theme: string;
+    notifications: boolean;
+  };
+}
+
+interface CardData {
+  nombre: string;
+  prioridad: string;
+  tareas: Task[];
+  userId: string;
+  compartidoCon?: string[];
+}
+
+interface Task {
+  id: string;
+  titulo: string;
+  descripcion: string;
+  completada: boolean;
+  subtareas: Subtask[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface Subtask {
+  id: string;
+  titulo: string;
+  completada: boolean;
+  comments: Comment[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface Comment {
+  id: string;
+  texto: string;
+  userId: string;
+  createdAt: string;
+}
 
 // Operaciones de usuario
-export const createUserProfile = async (userId: string, userData: any) => {
+export const createUserProfile = async (userId: string, userData: UserData) => {
   try {
     await setDoc(doc(db, 'users', userId), {
       ...userData,
@@ -22,29 +68,29 @@ export const createUserProfile = async (userId: string, userData: any) => {
       updatedAt: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error al crear perfil de usuario:', error);
+    console.error('Error creating user profile:', error);
     throw error;
   }
 };
 
-export const getUserProfile = async (userId: string) => {
+export const getUserProfile = async (userId: string): Promise<UserData | null> => {
   try {
     const docRef = doc(db, 'users', userId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return docSnap.data();
+      return docSnap.data() as UserData;
     }
     return null;
   } catch (error) {
-    console.error('Error al obtener perfil de usuario:', error);
+    console.error('Error getting user profile:', error);
     throw error;
   }
 };
 
 // Operaciones de tarjetas
-export const createCard = async (userId: string, cardData: any) => {
+export const createCard = async (userId: string, cardData: Omit<CardData, 'userId'>) => {
   try {
-    const cardId = crypto.randomUUID();
+    const cardId = uuidv4();
     await setDoc(doc(db, 'cards', cardId), {
       ...cardData,
       userId,
@@ -53,26 +99,26 @@ export const createCard = async (userId: string, cardData: any) => {
     });
     return cardId;
   } catch (error) {
-    console.error('Error al crear tarjeta:', error);
+    console.error('Error creating card:', error);
     throw error;
   }
 };
 
-export const getUserCards = async (userId: string) => {
+export const getUserCards = async (userId: string): Promise<CardData[]> => {
   try {
     const cardsQuery = query(collection(db, 'cards'), where('userId', '==', userId));
     const querySnapshot = await getDocs(cardsQuery);
     return querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    }));
+    } as unknown as CardData));
   } catch (error) {
-    console.error('Error al obtener tarjetas del usuario:', error);
+    console.error('Error getting user cards:', error);
     throw error;
   }
 };
 
-export const updateCard = async (cardId: string, cardData: any) => {
+export const updateCard = async (cardId: string, cardData: Partial<CardData>) => {
   try {
     const cardRef = doc(db, 'cards', cardId);
     await updateDoc(cardRef, {
@@ -80,62 +126,62 @@ export const updateCard = async (cardId: string, cardData: any) => {
       updatedAt: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error al actualizar tarjeta:', error);
+    console.error('Error updating card:', error);
     throw error;
   }
 };
 
-export const deleteCard = async (cardId: string) => {
+export const deleteCard = async (cardId: string): Promise<void> => {
   try {
     const cardRef = doc(db, 'cards', cardId);
     await deleteDoc(cardRef);
   } catch (error) {
-    console.error('Error al eliminar tarjeta:', error);
+    console.error('Error deleting card:', error);
     throw error;
   }
 };
 
 // Operaciones de tareas
-export const addTask = async (cardId: string, taskData: any) => {
+export const addTask = async (cardId: string, taskData: Omit<Task, 'id' | 'createdAt'>) => {
   try {
     const cardRef = doc(db, 'cards', cardId);
     await updateDoc(cardRef, {
       tareas: arrayUnion({
-        id: crypto.randomUUID(),
+        id: uuidv4(),
         ...taskData,
         createdAt: new Date().toISOString()
       })
     });
   } catch (error) {
-    console.error('Error al añadir tarea:', error);
+    console.error('Error adding task:', error);
     throw error;
   }
 };
 
-export const updateTask = async (cardId: string, taskId: string, taskData: any) => {
+export const updateTask = async (cardId: string, taskId: string, taskData: Partial<Task>) => {
   try {
     const cardRef = doc(db, 'cards', cardId);
     const cardDoc = await getDoc(cardRef);
     if (cardDoc.exists()) {
-      const card = cardDoc.data();
-      const tasks = card.tareas.map((task: any) => 
+      const card = cardDoc.data() as CardData;
+      const tasks = card.tareas.map((task: Task) => 
         task.id === taskId ? { ...task, ...taskData, updatedAt: new Date().toISOString() } : task
       );
       await updateDoc(cardRef, { tareas: tasks });
     }
   } catch (error) {
-    console.error('Error al actualizar tarea:', error);
+    console.error('Error updating task:', error);
     throw error;
   }
 };
 
-export const deleteTask = async (cardId: string, taskId: string) => {
+export const deleteTask = async (cardId: string, taskId: string): Promise<void> => {
   try {
     const cardRef = doc(db, 'cards', cardId);
     const cardDoc = await getDoc(cardRef);
     if (cardDoc.exists()) {
-      const card = cardDoc.data();
-      const taskToRemove = card.tareas.find((task: any) => task.id === taskId);
+      const card = cardDoc.data() as CardData;
+      const taskToRemove = card.tareas.find((task: Task) => task.id === taskId);
       if (taskToRemove) {
         await updateDoc(cardRef, {
           tareas: arrayRemove(taskToRemove)
@@ -143,24 +189,24 @@ export const deleteTask = async (cardId: string, taskId: string) => {
       }
     }
   } catch (error) {
-    console.error('Error al eliminar tarea:', error);
+    console.error('Error deleting task:', error);
     throw error;
   }
 };
 
 // Operaciones de subtareas
-export const addSubtask = async (cardId: string, taskId: string, subtaskData: any) => {
+export const addSubtask = async (cardId: string, taskId: string, subtaskData: Omit<Subtask, 'id' | 'createdAt'>) => {
   try {
     const cardRef = doc(db, 'cards', cardId);
     const cardDoc = await getDoc(cardRef);
     if (cardDoc.exists()) {
-      const card = cardDoc.data();
-      const tareas = card.tareas.map((tarea: any) => {
+      const card = cardDoc.data() as CardData;
+      const tareas = card.tareas.map((tarea: Task) => {
         if (tarea.id === taskId) {
           return {
             ...tarea,
             subtareas: [...(tarea.subtareas || []), {
-              id: crypto.randomUUID(),
+              id: uuidv4(),
               ...subtaskData,
               createdAt: new Date().toISOString()
             }]
@@ -171,22 +217,22 @@ export const addSubtask = async (cardId: string, taskId: string, subtaskData: an
       await updateDoc(cardRef, { tareas });
     }
   } catch (error) {
-    console.error('Error al añadir subtarea:', error);
+    console.error('Error adding subtask:', error);
     throw error;
   }
 };
 
-export const updateSubtask = async (cardId: string, taskId: string, subtaskId: string, subtaskData: any) => {
+export const updateSubtask = async (cardId: string, taskId: string, subtaskId: string, subtaskData: Partial<Subtask>) => {
   try {
     const cardRef = doc(db, 'cards', cardId);
     const cardDoc = await getDoc(cardRef);
     if (cardDoc.exists()) {
-      const card = cardDoc.data();
-      const tareas = card.tareas.map((tarea: any) => {
+      const card = cardDoc.data() as CardData;
+      const tareas = card.tareas.map((tarea: Task) => {
         if (tarea.id === taskId) {
           return {
             ...tarea,
-            subtareas: tarea.subtareas.map((subtarea: any) =>
+            subtareas: tarea.subtareas.map((subtarea: Subtask) =>
               subtarea.id === subtaskId
                 ? { ...subtarea, ...subtaskData, updatedAt: new Date().toISOString() }
                 : subtarea
@@ -198,22 +244,22 @@ export const updateSubtask = async (cardId: string, taskId: string, subtaskId: s
       await updateDoc(cardRef, { tareas });
     }
   } catch (error) {
-    console.error('Error al actualizar subtarea:', error);
+    console.error('Error updating subtask:', error);
     throw error;
   }
 };
 
-export const deleteSubtask = async (cardId: string, taskId: string, subtaskId: string) => {
+export const deleteSubtask = async (cardId: string, taskId: string, subtaskId: string): Promise<void> => {
   try {
     const cardRef = doc(db, 'cards', cardId);
     const cardDoc = await getDoc(cardRef);
     if (cardDoc.exists()) {
-      const card = cardDoc.data();
-      const tareas = card.tareas.map((tarea: any) => {
+      const card = cardDoc.data() as CardData;
+      const tareas = card.tareas.map((tarea: Task) => {
         if (tarea.id === taskId) {
           return {
             ...tarea,
-            subtareas: tarea.subtareas.filter((subtarea: any) => subtarea.id !== subtaskId)
+            subtareas: tarea.subtareas.filter((subtarea: Subtask) => subtarea.id !== subtaskId)
           };
         }
         return tarea;
@@ -221,28 +267,28 @@ export const deleteSubtask = async (cardId: string, taskId: string, subtaskId: s
       await updateDoc(cardRef, { tareas });
     }
   } catch (error) {
-    console.error('Error al eliminar subtarea:', error);
+    console.error('Error deleting subtask:', error);
     throw error;
   }
 };
 
 // Operaciones de comentarios
-export const addComment = async (cardId: string, taskId: string, subtaskId: string, commentData: any) => {
+export const addComment = async (cardId: string, taskId: string, subtaskId: string, commentData: Omit<Comment, 'id' | 'createdAt'>) => {
   try {
     const cardRef = doc(db, 'cards', cardId);
     const cardDoc = await getDoc(cardRef);
     if (cardDoc.exists()) {
-      const card = cardDoc.data();
-      const tasks = card.tareas.map((task: any) => {
+      const card = cardDoc.data() as CardData;
+      const tasks = card.tareas.map((task: Task) => {
         if (task.id === taskId) {
           return {
             ...task,
-            subtareas: task.subtareas.map((subtask: any) => {
+            subtareas: task.subtareas.map((subtask: Subtask) => {
               if (subtask.id === subtaskId) {
                 return {
                   ...subtask,
                   comments: [...(subtask.comments || []), {
-                    id: crypto.randomUUID(),
+                    id: uuidv4(),
                     ...commentData,
                     createdAt: new Date().toISOString()
                   }]
@@ -257,24 +303,24 @@ export const addComment = async (cardId: string, taskId: string, subtaskId: stri
       await updateDoc(cardRef, { tareas: tasks });
     }
   } catch (error) {
-    console.error('Error al añadir comentario:', error);
+    console.error('Error adding comment:', error);
     throw error;
   }
 };
 
 // Obtener todos los correos de usuarios registrados
-export const getAllUserEmails = async () => {
+export const getAllUserEmails = async (): Promise<string[]> => {
   try {
     const usersSnapshot = await getDocs(collection(db, 'users'));
     return usersSnapshot.docs.map(doc => doc.data().email).filter(Boolean);
   } catch (error) {
-    console.error('Error al obtener los correos de usuarios:', error);
+    console.error('Error getting user emails:', error);
     throw error;
   }
-}
+};
 
 // Obtener tarjetas compartidas con un correo
-export const getCardsSharedWithEmail = async (email) => {
+export const getCardsSharedWithEmail = async (email: string) => {
   try {
     const cardsQuery = query(collection(db, 'cards'), where('compartidoCon', 'array-contains', email));
     const querySnapshot = await getDocs(cardsQuery);
@@ -283,13 +329,13 @@ export const getCardsSharedWithEmail = async (email) => {
       ...doc.data()
     }));
   } catch (error) {
-    console.error('Error al obtener tarjetas compartidas:', error);
+    console.error('Error getting shared cards:', error);
     throw error;
   }
 };
 
 // Obtener una tarjeta por su ID
-export const getCardById = async (cardId) => {
+export const getCardById = async (cardId: string) => {
   try {
     const cardRef = doc(db, 'cards', cardId);
     const cardSnap = await getDoc(cardRef);
@@ -298,7 +344,7 @@ export const getCardById = async (cardId) => {
     }
     return null;
   } catch (error) {
-    console.error('Error al obtener la tarjeta por ID:', error);
+    console.error('Error getting card by ID:', error);
     throw error;
   }
 }; 
