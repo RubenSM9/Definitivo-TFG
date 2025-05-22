@@ -17,6 +17,7 @@ interface Tarea {
   subtareas: any[];
   completada: boolean;
   etiquetas: string[];
+  imagen?: string;
 }
 
 interface Tarjeta {
@@ -50,16 +51,19 @@ export default function AjustesTarea() {
 
         const cards = await getUserCards(auth.currentUser.uid);
         const card = cards.find(c => c.id === id);
-        
+
         if (card) {
+          const tarjeta = card as Tarjeta;
+
           setFormData({
-            id: card.id,
-            nombre: card.nombre || '',
-            prioridad: card.prioridad || 'Media',
-            tareas: card.tareas || []
+            id: tarjeta.id,
+            nombre: tarjeta.nombre || '',
+            prioridad: tarjeta.prioridad || 'Media',
+            tareas: tarjeta.tareas || []
           });
-          if (card.tareas.length > 0 && card.tareas[0].imagen) {
-            setPreviewUrl(card.tareas[0].imagen);
+
+          if (tarjeta.tareas.length > 0 && tarjeta.tareas[0].imagen) {
+            setPreviewUrl(tarjeta.tareas[0].imagen);
           }
         } else {
           console.log("No se encontró la tarjeta");
@@ -79,7 +83,6 @@ export default function AjustesTarea() {
     const file = e.target.files?.[0];
     if (file) {
       const url = URL.createObjectURL(file);
-      // Limpiar la URL anterior si existe
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
       }
@@ -90,7 +93,6 @@ export default function AjustesTarea() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     try {
       if (!auth.currentUser) {
         router.push('/login');
@@ -148,7 +150,6 @@ export default function AjustesTarea() {
         Ajustes de Tarjeta
       </h1>
 
-      {/* Botón Volver */}
       <button
         onClick={volver}
         className="mb-4 py-2 px-4 bg-gray-400 hover:bg-gray-500 text-white font-bold rounded-lg shadow-md"
@@ -157,20 +158,19 @@ export default function AjustesTarea() {
       </button>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Sección de imagen */}
         <div className="flex justify-center mb-6">
           <div className="w-32 h-32 relative">
             <div className="w-full h-full bg-gray-700 rounded-lg overflow-hidden">
               {previewUrl ? (
                 <div className="relative w-full h-full">
-                <Image 
-                  src={previewUrl} 
-                  alt="Preview" 
-                  fill 
-                  className="object-cover" 
-                  sizes="(max-width: 128px) 100vw, 128px"
-                />
-              </div>
+                  <Image 
+                    src={previewUrl} 
+                    alt="Preview" 
+                    fill 
+                    className="object-cover" 
+                    sizes="(max-width: 128px) 100vw, 128px"
+                  />
+                </div>
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400">
                   <span>Sin imagen</span>
@@ -186,7 +186,6 @@ export default function AjustesTarea() {
           </div>
         </div>
 
-        {/* Título */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Nombre de la Tarjeta
@@ -200,7 +199,6 @@ export default function AjustesTarea() {
           />
         </div>
 
-        {/* Prioridad */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Prioridad
@@ -216,7 +214,6 @@ export default function AjustesTarea() {
           </select>
         </div>
 
-        {/* Botones */}
         <div className="flex gap-4 justify-between pt-6">
           <button
             type="button"
