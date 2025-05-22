@@ -5,13 +5,17 @@ import { useRouter } from 'next/navigation';
 import TareaCrear from '@/components/tarea_crear';
 import TareaPrevia from '@/components/tarea_previa';
 import { auth } from '@/firebase/firebaseConfig';
-import { getUserCards, deleteCard, getCardsSharedWithEmail } from '@/firebase/firebaseOperations';
+import { getUserCards, deleteCard, getCardsSharedWithEmail, CardData } from '@/firebase/firebaseOperations';
 import Image from 'next/image';
 import EtiquetaCompleta from '@/components/etiqueta_completa';
 
+interface Tarjeta extends CardData {
+  id: string;
+}
+
 export default function FirstPage() {
   const router = useRouter();
-  const [tarjetas, setTarjetas] = useState<any[]>([]);
+  const [tarjetas, setTarjetas] = useState<Tarjeta[]>([]);
   const [busqueda, setBusqueda] = useState('');
   const [filtroPrioridad, setFiltroPrioridad] = useState('');
   const [error, setError] = useState('');
@@ -28,15 +32,21 @@ export default function FirstPage() {
       }
       const [cardsPropias, cardsCompartidas] = await Promise.all([
         getUserCards(auth.currentUser.uid),
-        getCardsSharedWithEmail(auth.currentUser.email)
+        getCardsSharedWithEmail(auth.currentUser.email || '')
       ]);
-      // Unir y evitar duplicados por id
-      const ids = new Set();
-      const todas = [...cardsPropias, ...cardsCompartidas.filter(c => !cardsPropias.some(p => p.id === c.id))];
+      
+      // Ensure all cards have an id and convert to Tarjeta type
+      const todas = [...cardsPropias, ...cardsCompartidas]
+        .filter(c => c.id) // Filter out cards without id
+        .map(c => ({ ...c, id: c.id || '' })) // Ensure id is string
+        .filter((c, index, self) => // Remove duplicates
+          index === self.findIndex(t => t.id === c.id)
+        ) as Tarjeta[];
+      
       setTarjetas(todas);
     } catch (error) {
-      console.error('Error al cargar tarjetas:', error);
-      setError('Error al cargar las tarjetas. Por favor, intenta de nuevo.');
+      console.error('Error loading cards:', error);
+      setError('Error loading cards. Please try again.');
     }
   };
 
@@ -45,8 +55,8 @@ export default function FirstPage() {
       await deleteCard(id);
       await cargarTarjetas();
     } catch (error) {
-      console.error('Error al eliminar tarjeta:', error);
-      setError('Error al eliminar la tarjeta. Por favor, intenta de nuevo.');
+      console.error('Error deleting card:', error);
+      setError('Error deleting card. Please try again.');
     }
   };
 
@@ -57,56 +67,56 @@ export default function FirstPage() {
   });
 
   return (
-      <EtiquetaCompleta>
-        {/* Sidebar izquierda */}
-        <div className="w-full md:w-1/4 p-6 bg-white/50 backdrop-blur-lg text-gray-800 rounded-l-3xl shadow-inner">
-          <h2 className="text-xl font-semibold mb-6">Filtros</h2>
+    <EtiquetaCompleta>
+      {/* Left sidebar */}
+      <div className="w-full md:w-1/4 p-6 bg-white/50 backdrop-blur-lg text-gray-800 rounded-l-3xl shadow-inner">
+        <h2 className="text-xl font-semibold mb-6">Filters</h2>
 
-          <div className="mb-6">
-            <label className="block mb-2 text-sm font-medium">Buscar por nombre</label>
-            <input
-              type="text"
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full px-4 py-2 rounded-xl bg-white border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-              placeholder="Buscar..."
+        <div className="mb-6">
+          <label className="block mb-2 text-sm font-medium">Search by name</label>
+          <input
+            type="text"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="w-full px-4 py-2 rounded-xl bg-white border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+            placeholder="Search..."
+          />
+        </div>
+
+        <div className="mb-4">
+          <label className="block mb-2 text-sm font-medium">Priority</label>
+          <select
+            value={filtroPrioridad}
+            onChange={(e) => setFiltroPrioridad(e.target.value)}
+            className="w-full px-4 py-2 rounded-xl bg-white border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+          >
+            <option value="">All</option>
+            <option value="baja">Low</option>
+            <option value="media">Medium</option>
+            <option value="alta">High</option>
+          </select>
+        </div>
+
+        {error && (
+          <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            {error}
+          </div>
+        )}
+      </div>
+
+      {/* Right content */}
+      <div className="w-full md:w-3/4 p-6 bg-white/40 backdrop-blur-lg rounded-r-3xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {tarjetasFiltradas.map((tarjeta) => (
+            <TareaPrevia
+              key={tarjeta.id}
+              tarjeta={tarjeta}
+              onDelete={() => handleDelete(tarjeta.id)}
             />
-          </div>
-
-          <div className="mb-4">
-            <label className="block mb-2 text-sm font-medium">Prioridad</label>
-            <select
-              value={filtroPrioridad}
-              onChange={(e) => setFiltroPrioridad(e.target.value)}
-              className="w-full px-4 py-2 rounded-xl bg-white border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-            >
-              <option value="">Todas</option>
-              <option value="baja">Baja</option>
-              <option value="media">Media</option>
-              <option value="alta">Alta</option>
-            </select>
-          </div>
-
-          {error && (
-            <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-              {error}
-            </div>
-          )}
+          ))}
+          <TareaCrear />
         </div>
-
-        {/* Contenido derecho */}
-        <div className="w-full md:w-3/4 p-6 bg-white/40 backdrop-blur-lg rounded-r-3xl">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tarjetasFiltradas.map((tarjeta) => (
-              <TareaPrevia
-                key={tarjeta.id}
-                tarjeta={tarjeta}
-                onDelete={() => handleDelete(tarjeta.id)}
-              />
-            ))}
-            <TareaCrear />
-          </div>
-        </div>
-      </EtiquetaCompleta>
+      </div>
+    </EtiquetaCompleta>
   );
 }

@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { Settings, Trash2, Users } from 'lucide-react';
 import { auth } from '@/firebase/firebaseConfig';
-import { deleteCard } from '@/firebase/firebaseOperations';
+import { deleteCard, Task } from '@/firebase/firebaseOperations';
 
 interface Tarea {
   id: string;
@@ -20,8 +20,8 @@ interface Tarjeta {
   id: string;
   nombre: string;
   prioridad: string;
-  tareas: Tarea[];
-  compartidoCon: string[];
+  tareas: Task[];
+  compartidoCon?: string[];
   userId: string;
 }
 
