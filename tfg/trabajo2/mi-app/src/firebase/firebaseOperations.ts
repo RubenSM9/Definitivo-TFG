@@ -15,7 +15,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 
 // Types
-interface UserData {
+export interface UserData {
   displayName: string;
   email: string;
   photoURL: string | null;
@@ -25,7 +25,8 @@ interface UserData {
   };
 }
 
-interface CardData {
+export interface CardData {
+  id?: string;
   nombre: string;
   prioridad: string;
   tareas: Task[];
@@ -33,7 +34,7 @@ interface CardData {
   compartidoCon?: string[];
 }
 
-interface Task {
+export interface Task {
   id: string;
   titulo: string;
   descripcion: string;
@@ -41,9 +42,10 @@ interface Task {
   subtareas: Subtask[];
   createdAt: string;
   updatedAt?: string;
+  imagen?: string;
 }
 
-interface Subtask {
+export interface Subtask {
   id: string;
   titulo: string;
   completada: boolean;
@@ -52,7 +54,7 @@ interface Subtask {
   updatedAt?: string;
 }
 
-interface Comment {
+export interface Comment {
   id: string;
   texto: string;
   userId: string;

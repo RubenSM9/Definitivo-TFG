@@ -3,28 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { auth } from '@/firebase/firebaseConfig';
-import { getUserCards, updateCard, deleteCard } from '@/firebase/firebaseOperations';
+import { getUserCards, updateCard, deleteCard, CardData, Task } from '@/firebase/firebaseOperations';
 import EtiquetaCompleta from '@/components/etiqueta_completa';
 import Image from 'next/image';
 
-interface Tarea {
+interface FormData extends Omit<CardData, 'userId'> {
   id: string;
-  nombre: string;
-  descripcion?: string;
-  fechaLimite?: string;
-  prioridad: string;
-  asignado?: string;
-  subtareas: any[];
-  completada: boolean;
-  etiquetas: string[];
-  imagen?: string;
-}
-
-interface Tarjeta {
-  id: string;
-  nombre: string;
-  prioridad: string;
-  tareas: Tarea[];
 }
 
 export default function AjustesTarea() {
@@ -32,10 +16,10 @@ export default function AjustesTarea() {
   const params = useParams();
   const id = params?.id as string;
   const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState<Tarjeta>({
+  const [formData, setFormData] = useState<FormData>({
     id: '',
     nombre: '',
-    prioridad: 'Media',
+    prioridad: 'media',
     tareas: []
   });
 
@@ -53,24 +37,22 @@ export default function AjustesTarea() {
         const card = cards.find(c => c.id === id);
 
         if (card) {
-          const tarjeta = card as Tarjeta;
-
           setFormData({
-            id: tarjeta.id,
-            nombre: tarjeta.nombre || '',
-            prioridad: tarjeta.prioridad || 'Media',
-            tareas: tarjeta.tareas || []
+            id: card.id || '',
+            nombre: card.nombre,
+            prioridad: card.prioridad,
+            tareas: card.tareas || []
           });
 
-          if (tarjeta.tareas.length > 0 && tarjeta.tareas[0].imagen) {
-            setPreviewUrl(tarjeta.tareas[0].imagen);
+          if (card.tareas.length > 0 && card.tareas[0].imagen) {
+            setPreviewUrl(card.tareas[0].imagen);
           }
         } else {
-          console.log("No se encontró la tarjeta");
+          console.log("Card not found");
           router.push('/first');
         }
       } catch (error) {
-        console.error("Error al cargar los datos:", error);
+        console.error("Error loading data:", error);
       } finally {
         setLoading(false);
       }
@@ -87,7 +69,10 @@ export default function AjustesTarea() {
         URL.revokeObjectURL(previewUrl);
       }
       setPreviewUrl(url);
-      setFormData({ ...formData, tareas: formData.tareas.map((tarea) => ({ ...tarea, imagen: url })) });
+      setFormData(prev => ({
+        ...prev,
+        tareas: prev.tareas.map((tarea: Task) => ({ ...tarea, imagen: url }))
+      }));
     }
   };
 
@@ -102,19 +87,19 @@ export default function AjustesTarea() {
       const cardData = {
         nombre: formData.nombre,
         prioridad: formData.prioridad,
-        tareas: formData.tareas || []
+        tareas: formData.tareas
       };
 
       await updateCard(id, cardData);
       router.push('/first');
     } catch (error) {
-      console.error("Error al actualizar la tarjeta:", error);
-      alert("Error al actualizar la tarjeta. Por favor, inténtalo de nuevo.");
+      console.error("Error updating card:", error);
+      alert("Error updating card. Please try again.");
     }
   };
 
   const handleDelete = async () => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar esta tarjeta?')) {
+    if (window.confirm('Are you sure you want to delete this card?')) {
       try {
         if (!auth.currentUser) {
           router.push('/login');
@@ -124,8 +109,8 @@ export default function AjustesTarea() {
         await deleteCard(id);
         router.push('/first');
       } catch (error) {
-        console.error("Error al eliminar la tarjeta:", error);
-        alert("Error al eliminar la tarjeta. Por favor, inténtalo de nuevo.");
+        console.error("Error deleting card:", error);
+        alert("Error deleting card. Please try again.");
       }
     }
   };
@@ -147,14 +132,14 @@ export default function AjustesTarea() {
   return (
     <EtiquetaCompleta>
       <h1 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 bg-clip-text text-transparent">
-        Ajustes de Tarjeta
+        Card Settings
       </h1>
 
       <button
         onClick={volver}
         className="mb-4 py-2 px-4 bg-gray-400 hover:bg-gray-500 text-white font-bold rounded-lg shadow-md"
       >
-        Volver
+        Back
       </button>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -173,7 +158,7 @@ export default function AjustesTarea() {
                 </div>
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400">
-                  <span>Sin imagen</span>
+                  <span>No image</span>
                 </div>
               )}
             </div>
@@ -188,12 +173,12 @@ export default function AjustesTarea() {
 
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
-            Nombre de la Tarjeta
+            Card Name
           </label>
           <input
             type="text"
             value={formData.nombre}
-            onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+            onChange={(e) => setFormData(prev => ({ ...prev, nombre: e.target.value }))}
             className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
             required
           />
@@ -201,16 +186,16 @@ export default function AjustesTarea() {
 
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
-            Prioridad
+            Priority
           </label>
           <select
             value={formData.prioridad}
-            onChange={(e) => setFormData({ ...formData, prioridad: e.target.value })}
+            onChange={(e) => setFormData(prev => ({ ...prev, prioridad: e.target.value }))}
             className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
           >
-            <option value="Baja">Baja</option>
-            <option value="Media">Media</option>
-            <option value="Alta">Alta</option>
+            <option value="baja">Low</option>
+            <option value="media">Medium</option>
+            <option value="alta">High</option>
           </select>
         </div>
 
@@ -220,7 +205,7 @@ export default function AjustesTarea() {
             onClick={handleDelete}
             className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
           >
-            Eliminar Tarjeta
+            Delete Card
           </button>
           <div className="flex gap-4">
             <button
@@ -228,13 +213,13 @@ export default function AjustesTarea() {
               onClick={volver}
               className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
             >
-              Cancelar
+              Cancel
             </button>
             <button
               type="submit"
               className="px-6 py-2 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 text-white rounded-lg font-semibold shadow-lg hover:shadow-purple-500/50 transition-all duration-300"
             >
-              Guardar Cambios
+              Save Changes
             </button>
           </div>
         </div>
