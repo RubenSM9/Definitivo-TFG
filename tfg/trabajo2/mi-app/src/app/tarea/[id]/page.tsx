@@ -4,6 +4,44 @@ import { useEffect, useState } from 'react';
 import { Settings } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
+
+
+interface Comentario {
+  id: string;
+  texto: string;
+  fecha: string;
+}
+
+interface Subtarea {
+  id: string;
+  nombre: string;
+  completada: boolean;
+  prioridad: string;
+  fechaLimite?: string;
+  comentarios: Comentario[];
+}
+
+interface Tarea {
+  id: string;
+  nombre: string;
+  descripcion?: string;
+  fechaLimite?: string;
+  prioridad: string;
+  asignado?: string;
+  subtareas: Subtarea[];
+  completada: boolean;
+}
+
+interface Tarjeta {
+  id: string;
+  nombre: string;
+  prioridad: string;
+  tareas: Tarea[];
+  compartidoCon?: string[];
+  userId: string;
+}
+
+
 export default function BoardPage() {
   const params = useParams();
   const id = params?.id as string;
