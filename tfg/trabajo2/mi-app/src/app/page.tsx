@@ -4,23 +4,37 @@ import Link from 'next/link';
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center text-center px-4">
-      <h1 className="text-6xl md:text-8xl font-extrabold text-[#C1E49B] drop-shadow-[0_0_15px_#C1E49B] animate-glow">
-        Zentasker ⚡
-      </h1>
+    <section className="w-full min-h-[calc(100vh-128px)] flex items-center justify-center px-4">
+      <div className="text-center max-w-3xl">
 
-      <p className="mt-6 text-lg md:text-xl font-semibold text-cyan-200 max-w-2xl drop-shadow-[0_0_8px_rgba(34,211,238,0.6)] transition-opacity duration-1000">
-        Tu nuevo gestor de tareas con poder eléctrico. <br />
-        Organiza. Prioriza. <span className="text-cyan-300 font-bold">¡Domina tu día con estilo!</span>
-      </p>
+        {/* Logo + nombre animado */}
+        <h1 className="text-5xl md:text-7xl font-extrabold text-[#C1E49B] drop-shadow-[0_0_20px_#C1E49B] animate-glow tracking-wide">
+          Zentasker <span className="animate-pulse">⚡</span>
+        </h1>
 
-      <div className="mt-12">
-        <Link href="/login">
-          <button className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-2xl shadow-lg transition-all duration-300 hover:scale-105">
-            Empezar
-          </button>
-        </Link>
+        {/* Subtítulo convincente */}
+        <p className="mt-6 text-xl md:text-2xl text-cyan-200 font-medium drop-shadow-[0_0_8px_rgba(34,211,238,0.6)] leading-relaxed">
+          Planifica, organiza y prioriza tu día con estilo.  
+          <br className="hidden md:block" />
+          Tu productividad nunca había tenido tanto flow.
+        </p>
+
+        {/* Beneficios claros */}
+        <div className="mt-8 flex flex-col items-center space-y-2 text-cyan-100 text-sm md:text-base font-light">
+          <div>🚀 Organiza en segundos con arrastrar y soltar</div>
+          <div>🎯 Prioriza visualmente con etiquetas y colores</div>
+          <div>🌘 Modo oscuro neón activado automáticamente</div>
+        </div>
+
+        {/* CTA */}
+        <div className="mt-10">
+          <Link href="/login">
+            <button className="bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600 hover:scale-105 text-white font-semibold px-8 py-3 rounded-full shadow-lg transition-transform duration-300">
+              Empezar ahora
+            </button>
+          </Link>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
