@@ -469,14 +469,62 @@ export default function BoardPage() {
         setLoadingCompartir(false);
         return;
       }
+
+      if (!tarjeta) {
+        setErrorCompartir('Error: No se encontró la tarea.');
+        setLoadingCompartir(false);
+        return;
+      }
+
+      console.log('Iniciando proceso de compartir tarea...');
+      console.log('Correos a compartir:', correos);
+
       // Actualizar la tarjeta en Firebase
       await updateCard(id, {
         ...tarjeta,
         compartidoCon: correos,
       });
+
+      console.log('Tarjeta actualizada en Firebase');
+
+      // Enviar notificaciones por email a cada destinatario
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        console.log('Usuario actual:', currentUser.email);
+        
+        for (const correo of correos) {
+          console.log('Enviando email a:', correo);
+          try {
+            const response = await fetch('/api/send-email', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                email: correo,
+                subject: `${currentUser.email} ha compartido una tarea contigo`,
+                message: `${currentUser.email} ha compartido la tarea "${tarjeta.nombre}" contigo. Puedes acceder a ella desde tu panel de tareas compartidas.`
+              }),
+            });
+
+            const data = await response.json();
+            console.log('Respuesta del servidor:', data);
+
+            if (!data.success) {
+              console.error('Error al enviar email:', data.error);
+            }
+          } catch (error) {
+            console.error('Error al enviar email a', correo, ':', error);
+          }
+        }
+      } else {
+        console.log('No hay usuario actual');
+      }
+
       setShowCompartir(false);
       setCorreosCompartir('');
     } catch (e) {
+      console.error('Error general:', e);
       setErrorCompartir('Error al compartir la tarea.');
     }
     setLoadingCompartir(false);

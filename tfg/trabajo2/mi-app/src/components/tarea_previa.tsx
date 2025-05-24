@@ -1,27 +1,38 @@
 'use client';
 
-import { Settings, Trash2, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { Settings, Trash2, Users } from 'lucide-react';
 import { auth } from '@/firebase/firebaseConfig';
 import { deleteCard } from '@/firebase/firebaseOperations';
+
+interface Tarea {
+  id: string;
+  nombre: string;
+  descripcion?: string;
+  fechaLimite?: string;
+  prioridad: string;
+  asignado?: string;
+  subtareas: any[];
+  completada: boolean;
+}
 
 interface Tarjeta {
   id: string;
   nombre: string;
   prioridad: string;
-  tareas: any[];
-  compartidoCon?: string[];
+  tareas: Tarea[];
+  compartidoCon: string[];
+  userId: string;
 }
 
-export default function TareaPrevia({
-  tarjeta,
-  onDelete,
-}: {
+interface TareaPreviaProps {
   tarjeta: Tarjeta;
   onDelete: () => void;
-}) {
+}
+
+export default function TareaPrevia({ tarjeta, onDelete }: TareaPreviaProps) {
   const router = useRouter();
-  const isCompartida = tarjeta.compartidoCon && auth.currentUser && tarjeta.compartidoCon.includes(auth.currentUser.email);
+  const isCompartida = tarjeta.compartidoCon && tarjeta.compartidoCon.length > 0;
 
   const irAVistaTareas = () => {
     router.push(`/tarea/${tarjeta.id}`);
@@ -85,6 +96,19 @@ export default function TareaPrevia({
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
+
+      {tarjeta.compartidoCon && tarjeta.compartidoCon.length > 0 && (
+        <>
+          <span className="text-xs text-gray-500 ml-2">Compartido con:</span>
+          {tarjeta.compartidoCon.map((correo) => (
+            <span key={correo} title={correo} className="flex items-center gap-1">
+              <span className="w-8 h-8 rounded-full bg-blue-400 text-white flex items-center justify-center font-bold text-base shadow" style={{minWidth: '2rem'}}>
+                {correo[0]?.toUpperCase() || '?'}
+              </span>
+            </span>
+          ))}
+        </>
+      )}
     </div>
   );
 }
