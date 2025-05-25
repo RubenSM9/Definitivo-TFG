@@ -47,97 +47,100 @@ export default function Header() {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-fuchsia-500/20">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-2">
-          <Image
-            src="/images/logo_lila-removebg-preview.png"
-            alt="Zentasker Logo"
-            width={60}
-            height={60}
-          />
-        </Link>
+    <>
+      <header className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-fuchsia-500/20">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+          <Link href="/" className="flex items-center gap-2">
+            <Image
+              src="/images/logo_lila-removebg-preview.png"
+              alt="Zentasker Logo"
+              width={60}
+              height={60}
+            />
+          </Link>
 
-        <nav className="flex items-center gap-4 sm:gap-6 text-white relative ml-auto">
-          {isAuthenticated && (
-            <div className="text-sm text-gray-500 font-bold bg-white/10 px-4 py-2 rounded-full hidden sm:block">
-              {auth.currentUser?.email}
-            </div>
-          )}
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-full shadow transition flex items-center justify-center"
-            >
-              <Menu className="w-6 h-6 text-purple-500" />
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50">
-                <Link
-                  href="/funciones/tareas"
-                  onClick={() => setMenuOpen(false)}
-                  className="block px-4 py-2 text-sm text-gray-200 hover:bg-purple-600 transition"
-                >
-                  Funciones
-                </Link>
-                <Link
-                  href="/planes/premium"
-                  onClick={() => setMenuOpen(false)}
-                  className="block px-4 py-2 text-sm text-gray-200 hover:bg-purple-600 transition"
-                >
-                  Planes
-                </Link>
-                <Link
-                  href="/sobre-nosotros/historia"
-                  onClick={() => setMenuOpen(false)}
-                  className="block px-4 py-2 text-sm text-gray-200 hover:bg-purple-600 transition"
-                >
-                  Sobre Nosotros
-                </Link>
-                <Link
-                  href="/contacto/PaginaContacto"
-                  onClick={() => setMenuOpen(false)}
-                  className="block px-4 py-2 text-sm text-gray-200 hover:bg-purple-600 transition"
-                >
-                  Contacto
-                </Link>
+          <nav className="flex items-center gap-4 sm:gap-6 text-white relative ml-auto">
+            {isAuthenticated && (
+              <div className="text-sm text-gray-500 font-bold bg-white/10 px-4 py-2 rounded-full hidden sm:block">
+                {auth.currentUser?.email}
               </div>
             )}
-          </div>
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-full shadow transition flex items-center justify-center"
+              >
+                <Menu className="w-6 h-6 text-purple-500" />
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50">
+                  <Link
+                    href="/funciones/tareas"
+                    onClick={() => setMenuOpen(false)}
+                    className="block px-4 py-2 text-sm text-gray-200 hover:bg-purple-600 transition"
+                  >
+                    Funciones
+                  </Link>
+                  <Link
+                    href="/planes/premium"
+                    onClick={() => setMenuOpen(false)}
+                    className="block px-4 py-2 text-sm text-gray-200 hover:bg-purple-600 transition"
+                  >
+                    Planes
+                  </Link>
+                  <Link
+                    href="/sobre-nosotros/historia"
+                    onClick={() => setMenuOpen(false)}
+                    className="block px-4 py-2 text-sm text-gray-200 hover:bg-purple-600 transition"
+                  >
+                    Sobre Nosotros
+                  </Link>
+                  <Link
+                    href="/contacto/PaginaContacto"
+                    onClick={() => setMenuOpen(false)}
+                    className="block px-4 py-2 text-sm text-gray-200 hover:bg-purple-600 transition"
+                  >
+                    Contacto
+                  </Link>
+                </div>
+              )}
+            </div>
 
-          {authChecked && (
-            !isAuthenticated ? (
-              <>
-                <Link href="/register">
-                  <button className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-full shadow transition flex items-center justify-center">
-                    <UserPlus className="w-6 h-6 text-pink-500" />
-                  </button>
-                </Link>
+            {authChecked && (
+              !isAuthenticated ? (
+                <>
+                  <Link href="/register">
+                    <button className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-full shadow transition flex items-center justify-center">
+                      <UserPlus className="w-6 h-6 text-pink-500" />
+                    </button>
+                  </Link>
 
-                <Link href="/login">
-                  <button className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-full shadow transition flex items-center justify-center">
-                    <LogIn className="w-6 h-6 text-blue-500" />
+                  <Link href="/login">
+                    <button className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-full shadow transition flex items-center justify-center">
+                      <LogIn className="w-6 h-6 text-blue-500" />
+                    </button>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link href="/first">
+                    <button className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-full shadow transition flex items-center justify-center">
+                      <LayoutDashboard className="w-6 h-6 text-blue-500" />
+                    </button>
+                  </Link>
+                  <button 
+                    onClick={handleLogout}
+                    className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-full shadow transition flex items-center justify-center"
+                  >
+                    <LogOut className="w-6 h-6 text-red-500" />
                   </button>
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link href="/first">
-                  <button className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-full shadow transition flex items-center justify-center">
-                    <LayoutDashboard className="w-6 h-6 text-blue-500" />
-                  </button>
-                </Link>
-                <button 
-                  onClick={handleLogout}
-                  className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-full shadow transition flex items-center justify-center"
-                >
-                  <LogOut className="w-6 h-6 text-red-500" />
-                </button>
-              </>
-            )
-          )}
-        </nav>
-      </div>
-    </header>
+                </>
+              )
+            )}
+          </nav>
+        </div>
+      </header>
+      <div className="pt-24" />
+    </>
   );
 }
