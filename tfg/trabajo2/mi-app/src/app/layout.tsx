@@ -1,5 +1,3 @@
-// app/layout.tsx
-
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -34,14 +32,12 @@ export default function RootLayout({
           antialiased text-white h-full
         `}
       >
-        {/* Fondo degradado animado + estructura principal */}
         <div className="flex flex-col min-h-screen">
           <Header />
 
+          {/* 🔧 Ya no hay padding global, cada página se encarga de su estilo */}
           <main className="flex-grow">
-            <div className="w-full px-4 sm:px-6 lg:px-8 pt-24">
-              {children}
-            </div>
+            {children}
           </main>
 
           <Footer />
