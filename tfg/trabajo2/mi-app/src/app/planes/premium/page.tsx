@@ -47,9 +47,7 @@ const plans = [
       '✅ Acceso anticipado a funciones beta',
       '✅ Invitaciones a eventos exclusivos',
     ],
-    disadvantages: [
-      '❌ Coste mensual más alto',
-    ],
+    // No incluimos 'disadvantages'
   },
 ];
 
@@ -100,14 +98,16 @@ export default function PremiumPage() {
                 </ul>
               </div>
 
-              <div>
-                <h3 className="text-red-400 font-bold mb-2">❌ Desventajas</h3>
-                <ul className="list-disc list-inside text-red-300 space-y-1">
-                  {plan.disadvantages.map((dis, i) => (
-                    <li key={i}>{dis}</li>
-                  ))}
-                </ul>
-              </div>
+              {plan.disadvantages && (
+                <div>
+                  <h3 className="text-red-400 font-bold mb-2">❌ Desventajas</h3>
+                  <ul className="list-disc list-inside text-red-300 space-y-1">
+                    {plan.disadvantages.map((dis, i) => (
+                      <li key={i}>{dis}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             {plan.priceId && (
