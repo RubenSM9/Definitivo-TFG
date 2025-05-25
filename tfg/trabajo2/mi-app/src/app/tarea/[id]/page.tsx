@@ -68,6 +68,7 @@ export default function BoardPage() {
   const [correosCompartir, setCorreosCompartir] = useState('');
   const [loadingCompartir, setLoadingCompartir] = useState(false);
   const [errorCompartir, setErrorCompartir] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
 
   const esPropietario = tarjeta && tarjeta.userId === auth.currentUser?.uid;
 
@@ -481,6 +482,43 @@ export default function BoardPage() {
 
   return (
       <div className="max-w-7xl mt-10 mx-auto">
+          {/* Mobile filter toggle button */}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="md:hidden fixed bottom-40 right-4 z-50 bg-purple-600 text-white p-3 rounded-full shadow-lg hover:bg-purple-700 transition-colors"
+          >
+            <Filter className="h-6 w-6" />
+          </button>
+
+          {/* Mobile new task button */}
+          {esPropietario && (
+            <button
+              onClick={() => setShowCrearTarea(true)}
+              className="md:hidden fixed bottom-24 right-4 z-50 bg-purple-600 text-white p-3 rounded-full shadow-lg hover:bg-purple-700 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          )}
+
+          {/* Mobile share button */}
+          {esPropietario && (
+            <button
+              onClick={() => setShowCompartir(true)}
+              className="md:hidden fixed bottom-8 right-4 z-50 bg-purple-600 text-white p-3 rounded-full shadow-lg hover:bg-purple-700 transition-colors"
+            >
+              <Share2 className="h-6 w-6" />
+            </button>
+          )}
+
+          {/* Mobile filters overlay */}
+          <div className={`
+            md:hidden fixed inset-0 bg-black/50 z-40
+            transition-opacity duration-300
+            ${showFilters ? 'opacity-100' : 'opacity-0 pointer-events-none'}
+          `} onClick={() => setShowFilters(false)} />
+
           {/* Header con estadísticas */}
           <div className="bg-white/80 p-4 rounded-xl shadow-sm border-purple-200 p-6 mb-8">
             <div className="flex justify-between items-center mb-6">
@@ -502,7 +540,7 @@ export default function BoardPage() {
                   )}
                 </div>
               </div>
-              <div className="flex space-x-4">
+              <div className="hidden md:flex space-x-4">
                 <button
                   onClick={volver}
                   className="py-2 px-6 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg shadow-sm transition-all duration-200"
@@ -561,8 +599,68 @@ export default function BoardPage() {
             </div>
           </div>
 
-          {/* Filtros */}
-          <div className="bg-white/80 p-4 rounded-xl shadow-sm border border-purple-200 p-6 mb-8 text-gray-800">
+          {/* Filtros - Mobile version */}
+          <div className={`
+            md:hidden
+            fixed top-0 right-0 h-full w-80
+            bg-white/80 p-4 rounded-xl shadow-sm border border-purple-200
+            transform transition-transform duration-300
+            ${showFilters ? 'translate-x-0' : 'translate-x-full'}
+            z-50
+            overflow-y-auto
+          `}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Filtros</h3>
+              <button
+                onClick={() => setShowFilters(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex flex-col gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Buscar tareas..."
+                  value={filtros.busqueda}
+                  onChange={(e) => setFiltros({ ...filtros, busqueda: e.target.value })}
+                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800 placeholder-gray-500"
+                />
+              </div>
+              <select
+                value={filtros.prioridad}
+                onChange={(e) => setFiltros({ ...filtros, prioridad: e.target.value })}
+                className="px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800"
+              >
+                <option value="">Todas las prioridades</option>
+                <option value="Alta">Alta</option>
+                <option value="Media">Media</option>
+                <option value="Baja">Baja</option>
+              </select>
+              <select
+                value={filtros.estado}
+                onChange={(e) => setFiltros({ ...filtros, estado: e.target.value })}
+                className="px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800"
+              >
+                <option value="">Todos los estados</option>
+                <option value="completada">Completadas</option>
+                <option value="pendiente">Pendientes</option>
+              </select>
+              <input
+                type="date"
+                value={filtros.fecha}
+                onChange={(e) => setFiltros({ ...filtros, fecha: e.target.value })}
+                className="px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800"
+              />
+            </div>
+          </div>
+
+          {/* Filtros - Desktop version */}
+          <div className="hidden md:block bg-white/80 p-4 rounded-xl shadow-sm border border-purple-200 p-6 mb-8 text-gray-800">
             <div className="flex flex-wrap gap-4">
               <div className="flex-1 min-w-[200px]">
                 <div className="relative">
@@ -603,8 +701,6 @@ export default function BoardPage() {
               />
             </div>
           </div>
-
-
 
           {/* Contenedor principal de tareas */}
           <div className="relative">
