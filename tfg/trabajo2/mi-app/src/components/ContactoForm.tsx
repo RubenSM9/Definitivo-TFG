@@ -12,13 +12,23 @@ export default function ContactoForm() {
     setEstado('cargando');
 
     try {
-      const res = await fetch('/api/send', {
+      const res = await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          to: 'zentaskerempresa@gmail.com', 
+          to: 'zentaskerempresa@gmail.com',
           subject: 'Nuevo mensaje desde la web',
-          html: `<p><strong>Email:</strong> ${email}</p><p><strong>Mensaje:</strong> ${mensaje}</p>`,
+          text: `Email: ${email}\nMensaje: ${mensaje}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #333;">Nuevo mensaje desde la web</h2>
+              <p><strong>Email:</strong> ${email}</p>
+              <p><strong>Mensaje:</strong> ${mensaje}</p>
+              <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+                <p style="color: #999; font-size: 12px;">Este es un email automático, por favor no responda a este mensaje.</p>
+              </div>
+            </div>
+          `,
         }),
       });
 
