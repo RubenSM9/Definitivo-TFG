@@ -8,6 +8,7 @@ import { auth } from '@/firebase/firebaseConfig';
 import { getUserCards, deleteCard, getCardsSharedWithEmail, CardData } from '@/firebase/firebaseOperations';
 import Image from 'next/image';
 import EtiquetaCompleta from '@/components/etiqueta_completa';
+import { Filter, Share2, Search } from 'lucide-react';
 
 interface Tarjeta extends CardData {
   id: string;
@@ -19,6 +20,7 @@ export default function FirstPage() {
   const [busqueda, setBusqueda] = useState('');
   const [filtroPrioridad, setFiltroPrioridad] = useState('');
   const [error, setError] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     cargarTarjetas();
@@ -68,40 +70,65 @@ export default function FirstPage() {
 
   return (
     <EtiquetaCompleta>
-      {/* Left sidebar */}
-      <div className="w-full md:w-1/4 p-6 bg-white/50 backdrop-blur-lg text-gray-800 rounded-l-3xl shadow-inner">
-        <h2 className="text-xl font-semibold mb-6">Filters</h2>
+      {/* Mobile filter toggle button */}
+      <button
+        onClick={() => setShowFilters(!showFilters)}
+        className="md:hidden fixed bottom-32 right-4 z-50 bg-purple-600 text-white p-3 rounded-full shadow-lg hover:bg-purple-700 transition-colors"
+      >
+        <Filter className="h-6 w-6" />
+      </button>
 
-        <div className="mb-6">
-          <label className="block mb-2 text-sm font-medium">Search by name</label>
-          <input
-            type="text"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full px-4 py-2 rounded-xl bg-white border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-            placeholder="Search..."
-          />
+      {/* Mobile filters overlay */}
+      <div className={`
+        md:hidden fixed inset-0 bg-black/50 z-40
+        transition-opacity duration-300
+        ${showFilters ? 'opacity-100' : 'opacity-0 pointer-events-none'}
+      `} onClick={() => setShowFilters(false)} />
+
+      {/* Filtros - Mobile version */}
+      <div className={`
+        md:hidden
+        fixed top-0 right-0 h-full w-80
+        bg-white/80 p-4 rounded-xl shadow-sm border border-purple-200
+        transform transition-transform duration-300
+        ${showFilters ? 'translate-x-0' : 'translate-x-full'}
+        z-50
+        overflow-y-auto
+      `}>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Filtros</h3>
+          <button
+            onClick={() => setShowFilters(false)}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
-        <div className="mb-4">
-          <label className="block mb-2 text-sm font-medium">Priority</label>
+        <div className="space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Buscar tareas..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800 placeholder-gray-500"
+            />
+          </div>
           <select
             value={filtroPrioridad}
             onChange={(e) => setFiltroPrioridad(e.target.value)}
-            className="w-full px-4 py-2 rounded-xl bg-white border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+            className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800"
           >
-            <option value="">All</option>
-            <option value="baja">Low</option>
-            <option value="media">Medium</option>
-            <option value="alta">High</option>
+            <option value="">Todas las prioridades</option>
+            <option value="Alta">Alta</option>
+            <option value="Media">Media</option>
+            <option value="Baja">Baja</option>
           </select>
         </div>
-
-        {error && (
-          <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
-          </div>
-        )}
       </div>
 
       {/* Right content */}
