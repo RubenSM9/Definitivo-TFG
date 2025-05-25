@@ -7,4 +7,4 @@
   NODE_VERSION = "18" # Puedes poner la versión de Node que usas en local
 
 [[plugins]]
-  package = "@netlify/plugin-nextjs"
+  package = "@netlify/plugin-nextjs" 
