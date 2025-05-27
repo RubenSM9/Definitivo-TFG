@@ -13,6 +13,7 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState<'god' | 'gratis' | 'pro' | 'premium'>('gratis');
   const [error, setError] = useState('');
   const router = useRouter();
 
@@ -32,6 +33,7 @@ export default function Register() {
         displayName: name,
         email: email,
         photoURL: null,
+        role: role,
         settings: {
           theme: 'light',
           notifications: true
@@ -123,6 +125,24 @@ export default function Register() {
             className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
             required
           />
+        </div>
+
+        <div>
+          <label htmlFor="role" className="block text-sm font-medium text-gray-300 mb-2">
+            Tipo de Usuario
+          </label>
+          <select
+            id="role"
+            value={role}
+            onChange={(e) => setRole(e.target.value as 'god' | 'gratis' | 'pro' | 'premium')}
+            className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+            required
+          >
+            <option value="gratis">Gratis</option>
+            <option value="pro">Pro</option>
+            <option value="premium">Premium</option>
+            <option value="god">Administrador</option>
+          </select>
         </div>
 
         {error && (

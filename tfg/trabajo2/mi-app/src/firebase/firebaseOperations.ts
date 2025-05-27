@@ -19,10 +19,12 @@ export interface UserData {
   displayName: string;
   email: string;
   photoURL: string | null;
+  role: 'god' | 'gratis' | 'pro' | 'premium';
   settings: {
     theme: string;
     notifications: boolean;
   };
+  isBlocked?: boolean;
 }
 
 export interface CardData {
@@ -355,6 +357,19 @@ export const getCardById = async (cardId: string) => {
     return null;
   } catch (error) {
     console.error('Error getting card by ID:', error);
+    throw error;
+  }
+};
+
+// Operaciones de bloqueo/desbloqueo de usuario
+export const updateUserBlockedStatus = async (userId: string, isBlocked: boolean) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      isBlocked: isBlocked
+    });
+  } catch (error) {
+    console.error(`Error updating block status for user ${userId}:`, error);
     throw error;
   }
 }; 

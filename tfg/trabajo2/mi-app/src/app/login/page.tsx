@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import EtiquetaLarga from '../../components/etiqueta_larga';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../firebase/firebaseConfig';
+import { getUserProfile } from '@/firebase/firebaseOperations';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -19,6 +20,15 @@ export default function Login() {
       console.log('Intentando iniciar sesión con:', { email });
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log('Usuario logueado exitosamente:', userCredential.user);
+
+      // Verificar si la cuenta está bloqueada
+      const userProfile = await getUserProfile(userCredential.user.uid);
+      if (userProfile?.isBlocked) {
+        await auth.signOut(); // Cerrar sesión si está bloqueado
+        setError('Cuenta baneada'); // Mostrar mensaje de cuenta baneada
+        return;
+      }
+
       router.push('/first');
     } catch (err: any) {
       console.error('Error completo:', err);

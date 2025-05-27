@@ -4,22 +4,33 @@ import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { auth } from '@/firebase/firebaseConfig';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/firebase/firebaseConfig';
 import Image from 'next/image';
-import { LayoutDashboard, LogOut, LogIn, UserPlus, Menu } from 'lucide-react';
+import { LayoutDashboard, LogOut, LogIn, UserPlus, Menu, Shield } from 'lucide-react';
 
 export default function Header() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const menuRef = useRef(null);
 
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
       setIsAuthenticated(!!user);
       setAuthChecked(true);
+      
+      if (user) {
+        // Verificar si el usuario es administrador
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        setIsAdmin(userDoc.exists() && userDoc.data().role === 'god');
+      } else {
+        setIsAdmin(false);
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -97,6 +108,14 @@ export default function Header() {
                 >
                   Contacto
                 </Link>
+                {isAuthenticated && isAdmin && (
+                  <Link
+                    href="/admin_vista"
+                    className="block px-4 py-2 text-sm text-gray-200 hover:bg-purple-600 transition"
+                  >
+                    Panel de Admin
+                  </Link>
+                )}
               </div>
             )}
           </div>
@@ -123,6 +142,13 @@ export default function Header() {
                     <LayoutDashboard className="w-6 h-6 text-blue-500" />
                   </button>
                 </Link>
+                {isAdmin && (
+                  <Link href="/admin_vista">
+                    <button className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-full shadow transition flex items-center justify-center">
+                      <Shield className="w-6 h-6 text-purple-500" />
+                    </button>
+                  </Link>
+                )}
                 <button 
                   onClick={handleLogout}
                   className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-full shadow transition flex items-center justify-center"

@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       });
     }
     return NextResponse.json(
-      { success: false, error: 'Error al enviar el email' },
+      { success: false, error: error.message || 'Error al enviar el email', details: error.response?.body },
       { status: 500 }
     );
   }

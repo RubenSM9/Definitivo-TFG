@@ -22,7 +22,8 @@ import {
   Task,
   Subtask,
   Comment,
-  CardData
+  CardData,
+  getUserProfile
 } from '@/firebase/firebaseOperations';
 import EtiquetaCompleta from '@/components/etiqueta_completa';
 
@@ -69,6 +70,7 @@ export default function BoardPage() {
   const [loadingCompartir, setLoadingCompartir] = useState(false);
   const [errorCompartir, setErrorCompartir] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [userRole, setUserRole] = useState<'god' | 'gratis' | 'pro' | 'premium' | null>(null);
 
   const esPropietario = tarjeta && tarjeta.userId === auth.currentUser?.uid;
 
@@ -78,6 +80,12 @@ export default function BoardPage() {
       if (!auth.currentUser) {
         router.push('/login');
         return;
+      }
+
+      // Cargar perfil del usuario para obtener el rol
+      const userProfile = await getUserProfile(auth.currentUser.uid);
+      if (userProfile) {
+        setUserRole(userProfile.role);
       }
 
       const card = await getCardById(id);
@@ -329,23 +337,28 @@ export default function BoardPage() {
         comments: []
       };
 
+      // Primero actualizar Firebase
       await addSubtask(id, selectedTarea.id, nuevaSubtareaData);
 
-      // Actualizar el estado local inmediatamente
-      setSelectedTarea(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          subtareas: [...(prev.subtareas || []), { ...nuevaSubtareaData, id: Date.now().toString(), createdAt: new Date().toISOString() }]
-        };
-      });
+      // Recargar los datos
+      await cargarDatos();
 
+      // Actualizar selectedTarea con los datos más recientes
+      const card = await getCardById(id);
+      if (card && typeof card === 'object') {
+        const cardData = card as CardData & { id: string };
+        if (cardData.tareas) {
+          const tareaActualizada = cardData.tareas.find((t: Task) => t.id === selectedTarea.id);
+          if (tareaActualizada) {
+            setSelectedTarea(tareaActualizada);
+          }
+        }
+      }
+
+      // Limpiar el formulario
       setNuevaSubtarea('');
       setNuevaSubtareaPrioridad('Media');
       setNuevaSubtareaFechaLimite('');
-      
-      // Recargar los datos en segundo plano
-      cargarDatos();
     } catch (error) {
       console.error("Error al agregar subtarea:", error);
     }
@@ -407,6 +420,30 @@ export default function BoardPage() {
     setLoadingCompartir(true);
     setErrorCompartir('');
     try {
+      // Verificar si el usuario es gratis
+      if (userRole === 'gratis') {
+        alert('Debes mejorar tu plan para poder compartir');
+        setLoadingCompartir(false);
+        return;
+      }
+
+      // Verificar límite para usuarios Pro
+      if (userRole === 'pro') {
+        if (!auth.currentUser) {
+          // Esto no debería ocurrir gracias al chequeo inicial, pero para seguridad del linter
+          alert('Error de autenticación. Intenta recargar la página.');
+          setLoadingCompartir(false);
+          return;
+        }
+        const ownedCards = await getUserCards(auth.currentUser.uid);
+        const sharedCount = ownedCards.filter(card => card.compartidoCon && card.compartidoCon.length > 0).length;
+        if (sharedCount >= 3) {
+          alert('Limite de tu plan alcanzado, mejora tu plan');
+          setLoadingCompartir(false);
+          return;
+        }
+      }
+
       const correos = correosCompartir
         .split(/[\n,]+/)
         .map(c => c.trim())
@@ -423,24 +460,20 @@ export default function BoardPage() {
         return;
       }
 
-      console.log('Iniciando proceso de compartir tarea...');
-      console.log('Correos a compartir:', correos);
-
       // Actualizar la tarjeta en Firebase
       await updateCard(id, {
         ...tarjeta,
         compartidoCon: correos,
       });
 
-      console.log('Tarjeta actualizada en Firebase');
-
-      // Enviar notificaciones por email a cada destinatario
+      // Enviar notificaciones por email
       const currentUser = auth.currentUser;
       if (currentUser) {
-        console.log('Usuario actual:', currentUser.email);
+        let emailsEnviados = 0;
+        let emailsFallidos = 0;
+        let erroresDetallados: string[] = [];
         
         for (const correo of correos) {
-          console.log('Enviando email a:', correo);
           try {
             const response = await fetch('/api/send-email', {
               method: 'POST',
@@ -455,17 +488,27 @@ export default function BoardPage() {
             });
 
             const data = await response.json();
-            console.log('Respuesta del servidor:', data);
-
-            if (!data.success) {
-              console.error('Error al enviar email:', data.error);
+            if (data.success) {
+              emailsEnviados++;
+            } else {
+              emailsFallidos++;
+              const errorDetail = data.details ? `: ${JSON.stringify(data.details)}` : '';
+              erroresDetallados.push(`Error al enviar a ${correo}: ${data.error || 'Error desconocido'}${errorDetail}`);
             }
           } catch (error) {
-            console.error('Error al enviar email a', correo, ':', error);
+            emailsFallidos++;
+            erroresDetallados.push(`Error al enviar a ${correo}: Error de conexión`);
           }
         }
-      } else {
-        console.log('No hay usuario actual');
+
+        // Mostrar mensaje detallado según el resultado
+        if (emailsEnviados > 0 && emailsFallidos === 0) {
+          alert(`Tarea compartida exitosamente.\nSe enviaron ${emailsEnviados} notificaciones por correo.`);
+        } else if (emailsEnviados > 0 && emailsFallidos > 0) {
+          alert(`Tarea compartida.\nSe enviaron ${emailsEnviados} notificaciones.\nFallaron ${emailsFallidos} envíos:\n${erroresDetallados.join('\n')}`);
+        } else {
+          alert(`Tarea compartida, pero fallaron todos los envíos de correo:\n${erroresDetallados.join('\n')}`);
+        }
       }
 
       setShowCompartir(false);
@@ -505,7 +548,13 @@ export default function BoardPage() {
           {/* Mobile share button */}
           {esPropietario && (
             <button
-              onClick={() => setShowCompartir(true)}
+              onClick={() => {
+                if (userRole === 'gratis') {
+                  alert('Debes mejorar tu plan para poder compartir');
+                } else {
+                  setShowCompartir(true);
+                }
+              }}
               className="md:hidden fixed bottom-8 right-4 z-50 bg-purple-600 text-white p-3 rounded-full shadow-lg hover:bg-purple-700 transition-colors"
             >
               <Share2 className="h-6 w-6" />
@@ -557,7 +606,13 @@ export default function BoardPage() {
                 )}
                 {esPropietario && (
                   <button
-                    onClick={() => setShowCompartir(true)}
+                    onClick={() => {
+                      if (userRole === 'gratis') {
+                        alert('Debes mejorar tu plan para poder compartir');
+                      } else {
+                        setShowCompartir(true);
+                      }
+                    }}
                     className="py-2 px-6 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-sm transition-all duration-200 flex items-center gap-2"
                   >
                     <Share2 className="w-5 h-5" /> Compartir
