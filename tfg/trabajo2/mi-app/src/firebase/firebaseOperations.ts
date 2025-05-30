@@ -25,6 +25,8 @@ export interface UserData {
     notifications: boolean;
   };
   isBlocked?: boolean;
+  proStartDate?: string;
+  premiumStartDate?: string;
 }
 
 export interface CardData {
@@ -74,11 +76,20 @@ export interface Comment {
 // Operaciones de usuario
 export const createUserProfile = async (userId: string, userData: UserData) => {
   try {
-    await setDoc(doc(db, 'users', userId), {
+    const dataToSet: any = {
       ...userData,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
-    });
+    };
+
+    // Set start dates based on initial role
+    if (userData.role === 'pro') {
+      dataToSet.proStartDate = new Date().toISOString();
+    } else if (userData.role === 'premium') {
+      dataToSet.premiumStartDate = new Date().toISOString();
+    }
+
+    await setDoc(doc(db, 'users', userId), dataToSet);
   } catch (error) {
     console.error('Error creating user profile:', error);
     throw error;
@@ -370,6 +381,34 @@ export const updateUserBlockedStatus = async (userId: string, isBlocked: boolean
     });
   } catch (error) {
     console.error(`Error updating block status for user ${userId}:`, error);
+    throw error;
+  }
+};
+
+export const updateUserRole = async (userId: string, role: UserData['role']) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const updateData: any = {
+      role: role,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Manage start dates based on the new role
+    if (role === 'pro') {
+      updateData.proStartDate = new Date().toISOString();
+      updateData.premiumStartDate = null; // Remove premium start date
+    } else if (role === 'premium') {
+      updateData.premiumStartDate = new Date().toISOString();
+      updateData.proStartDate = null; // Remove pro start date
+    } else {
+      // If role is neither pro nor premium, remove both start dates
+      updateData.proStartDate = null;
+      updateData.premiumStartDate = null;
+    }
+
+    await updateDoc(userRef, updateData);
+  } catch (error) {
+    console.error(`Error updating role for user ${userId}:`, error);
     throw error;
   }
 }; 

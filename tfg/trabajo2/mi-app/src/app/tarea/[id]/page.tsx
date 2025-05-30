@@ -416,6 +416,13 @@ export default function BoardPage() {
     return coincideBusqueda && coincidePrioridad && coincideEstado && coincideFecha;
   });
 
+  const sortedAndFilteredTareas = tareasFiltradas?.sort((a, b) => {
+    if (!a.fechaLimite && !b.fechaLimite) return 0;
+    if (!a.fechaLimite) return 1;
+    if (!b.fechaLimite) return -1;
+    return new Date(a.fechaLimite).getTime() - new Date(b.fechaLimite).getTime();
+  });
+
   const handleCompartir = async () => {
     setLoadingCompartir(true);
     setErrorCompartir('');
@@ -762,7 +769,7 @@ export default function BoardPage() {
             <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-600 rounded-[2.5rem] blur-xl opacity-20"></div>
             <div className="relative bg-white/80 p-4 rounded-xl shadow-sm border-4 border-purple-300 overflow-hidden shadow-2xl p-8">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {tareasFiltradas?.map((tarea: any) => (
+                {sortedAndFilteredTareas?.map((tarea: any) => (
                   <motion.div
                     key={tarea.id}
                     className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-purple-200 hover:shadow-xl transition-all duration-200 cursor-pointer"

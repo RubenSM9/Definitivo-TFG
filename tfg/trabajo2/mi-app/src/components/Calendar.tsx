@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { Calendar as BigCalendar, dateFnsLocalizer } from 'react-big-calendar';
-import format from 'date-fns/format';
-import parse from 'date-fns/parse';
-import startOfWeek from 'date-fns/startOfWeek';
-import getDay from 'date-fns/getDay';
-import es from 'date-fns/locale/es';
+import { format } from 'date-fns/format';
+import { parse } from 'date-fns/parse';
+import { startOfWeek } from 'date-fns/startOfWeek';
+import { getDay } from 'date-fns/getDay';
+import { es } from 'date-fns/locale/es';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { CardData } from '@/firebase/firebaseOperations';
+import { CardData } from '../firebase/firebaseOperations';
 
 const locales = {
   'es': es,
@@ -27,8 +27,27 @@ interface CalendarProps {
   onSelectTask: (task: any) => void;
 }
 
+const CustomToolbar = ({ label, onNavigate }: any) => {
+  return (
+    <div className="rbc-toolbar">
+      <span className="rbc-btn-group">
+        <button type="button" onClick={() => onNavigate('PREV')}>Anterior</button>
+        <button type="button" onClick={() => onNavigate('NEXT')}>Siguiente</button>
+      </span>
+      <span className="rbc-toolbar-label">
+        {label}
+      </span>
+    </div>
+  );
+};
+
 export default function Calendar({ tasks, onSelectTask }: CalendarProps) {
   const [events, setEvents] = useState<any[]>([]);
+  const [date, setDate] = useState(new Date());
+
+  const handleNavigate = (newDate: Date) => {
+    setDate(newDate);
+  };
 
   useEffect(() => {
     const calendarEvents = tasks.flatMap(card => 
@@ -96,6 +115,11 @@ export default function Calendar({ tasks, onSelectTask }: CalendarProps) {
           event: "Evento",
           noEventsInRange: "No hay tareas en este rango"
         }}
+        components={{
+          toolbar: CustomToolbar,
+        }}
+        date={date}
+        onNavigate={handleNavigate}
       />
     </div>
   );

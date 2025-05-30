@@ -6,7 +6,7 @@ import { auth } from '@/firebase/firebaseConfig';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase/firebaseConfig';
 import Header from '@/components/header';
-import { updateUserBlockedStatus } from '@/firebase/firebaseOperations';
+import { updateUserBlockedStatus, updateUserRole } from '@/firebase/firebaseOperations';
 
 interface User {
   id: string;
@@ -15,6 +15,8 @@ interface User {
   createdAt: string;
   role: 'god' | 'gratis' | 'pro' | 'premium';
   isBlocked?: boolean;
+  proStartDate?: string;
+  premiumStartDate?: string;
 }
 
 export default function AdminView() {
@@ -40,12 +42,11 @@ export default function AdminView() {
     }
   }, []);
 
-  // Handlers para bloquear/desbloquear usuario
   const handleBlockUser = async (userId: string) => {
     if (window.confirm('¿Estás seguro de que quieres bloquear a este usuario?')) {
       try {
         await updateUserBlockedStatus(userId, true);
-        fetchUsers(); // Refrescar la lista después de bloquear
+        fetchUsers();
       } catch (error) {
         console.error('Error blocking user:', error);
         alert('Error al bloquear usuario.');
@@ -57,11 +58,21 @@ export default function AdminView() {
     if (window.confirm('¿Estás seguro de que quieres desbloquear a este usuario?')) {
       try {
         await updateUserBlockedStatus(userId, false);
-        fetchUsers(); // Refrescar la lista después de desbloquear
+        fetchUsers();
       } catch (error) {
         console.error('Error unblocking user:', error);
         alert('Error al desbloquear usuario.');
       }
+    }
+  };
+
+  const handleRoleChange = async (userId: string, newRole: User['role']) => {
+    try {
+      await updateUserRole(userId, newRole);
+      fetchUsers();
+    } catch (error) {
+      console.error('Error changing user role:', error);
+      alert('Error al cambiar el plan del usuario.');
     }
   };
 
@@ -72,7 +83,6 @@ export default function AdminView() {
         return;
       }
 
-      // Verificar si el usuario es administrador
       const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
       if (!userDoc.exists() || userDoc.data().role !== 'god') {
         router.push('/first');
@@ -84,101 +94,97 @@ export default function AdminView() {
     fetchUsers();
   }, [router, fetchUsers]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white">
-        <Header />
-        <div className="pt-24 px-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="animate-pulse">
-              <div className="h-8 bg-gray-200 rounded-full w-1/4 mb-8"></div>
-              <div className="space-y-4">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="h-16 bg-gray-200 rounded-2xl"></div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white">
-        <Header />
-        <div className="pt-24 px-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-2xl">
-              {error}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white">
       <Header />
-      <div className="pt-24 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-600 rounded-[2.5rem] blur-xl opacity-20"></div>
-            <div className="relative bg-white/60 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-lg border-4 border-purple-300">
-              <h1 className="text-3xl font-bold text-purple-800 mb-8">Panel de Administración</h1>
+      
+            
+            <div className="bg-white/40 backdrop-blur-sm rounded-2xl shadow-lg border border-purple-200 overflow-hidden">
+              <div className="px-6 py-5 bg-purple-50/50 border-b border-purple-200">
+                <h2 className="text-xl font-semibold text-purple-800">Lista de Usuarios</h2>
+                <p className="mt-1 text-sm text-gray-500">Todos los usuarios registrados en la plataforma</p>
+              </div>
               
-              <div className="bg-white/40 backdrop-blur-sm rounded-2xl shadow-lg border border-purple-200 overflow-hidden">
-                <div className="px-6 py-5 bg-purple-50/50 border-b border-purple-200">
-                  <h2 className="text-xl font-semibold text-purple-800">Lista de Usuarios</h2>
-                  <p className="mt-1 text-sm text-gray-500">Todos los usuarios registrados en la plataforma</p>
-                </div>
-                
-                <div className="divide-y divide-purple-100">
-                  {users.map((user) => (
-                    <div key={user.id} className="px-6 py-4 hover:bg-purple-50/50 transition-colors duration-200">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0">
-                            <div className="h-12 w-12 rounded-full bg-purple-600 flex items-center justify-center shadow-md">
-                              <span className="text-white font-medium text-lg">
-                                {user.displayName?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-base font-medium text-gray-900">
-                              {user.displayName || 'Sin nombre'}
-                            </div>
-                            <div className="text-sm text-gray-500">{user.email}</div>
+              <div className="divide-y divide-purple-100">
+                {users.map((user) => (
+                  <div key={user.id} className="px-6 py-4 hover:bg-purple-50/50 transition-colors duration-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                          <div className="h-12 w-12 rounded-full bg-purple-600 flex items-center justify-center shadow-md">
+                            <span className="text-white font-medium text-lg">
+                              {user.displayName?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
+                            </span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-sm text-gray-500 bg-purple-50/50 px-4 py-2 rounded-full">
-                            {user.role === 'god' ? 'Administrador' : user.role === 'gratis' ? 'Gratis' : user.role === 'pro' ? 'Pro' : user.role === 'premium' ? 'Premium' : 'Desconocido'}
+                        <div className="ml-4">
+                          <div className="text-base font-medium text-gray-900">
+                            {user.displayName || 'Sin nombre'}
                           </div>
-                          <div className="text-sm text-gray-500 bg-purple-50/50 px-4 py-2 rounded-full">
-                            Registrado el {new Date(user.createdAt).toLocaleDateString()}
-                          </div>
-                          {user.role !== 'god' && (
-                            <button
-                              onClick={() => user.isBlocked ? handleUnblockUser(user.id) : handleBlockUser(user.id)}
-                              className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200 ${user.isBlocked ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'}`}
-                            >
-                              {user.isBlocked ? 'Desbloquear' : 'Bloquear'}
-                            </button>
-                          )}
+                          <div className="text-sm text-gray-500">{user.email}</div>
                         </div>
                       </div>
+                      <div className="flex items-center gap-4">
+                        {(user.role === 'pro' && user.proStartDate) && (
+                          <div className="text-sm text-gray-500 bg-purple-50/50 px-4 py-2 rounded-full">
+                            {(() => {
+                              const startDate = new Date(user.proStartDate);
+                              const endDate = new Date(startDate);
+                              endDate.setDate(startDate.getDate() + 30);
+                              const today = new Date();
+                              const timeDiff = endDate.getTime() - today.getTime();
+                              const daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+                              return daysRemaining > 0 ? `Días Pro restantes: ${daysRemaining}` : 'Plan Pro expirado';
+                            })()}
+                          </div>
+                        )}
+                        {(user.role === 'premium' && user.premiumStartDate) && (
+                          <div className="text-sm text-gray-500 bg-purple-50/50 px-4 py-2 rounded-full">
+                            {(() => {
+                              const startDate = new Date(user.premiumStartDate);
+                              const endDate = new Date(startDate);
+                              endDate.setDate(startDate.getDate() + 40);
+                              const today = new Date();
+                              const timeDiff = endDate.getTime() - today.getTime();
+                              const daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+                              return daysRemaining > 0 ? `Días Premium restantes: ${daysRemaining}` : 'Plan Premium expirado';
+                            })()}
+                          </div>
+                        )}
+                        {user.id !== auth.currentUser?.uid && (
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={user.role}
+                              onChange={(e) => handleRoleChange(user.id, e.target.value as User['role'])}
+                              className="px-4 py-2 rounded-full text-sm font-semibold bg-purple-50/50 border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500 text-black"
+                            >
+                              <option value="gratis">Gratis</option>
+                              <option value="pro">Pro</option>
+                              <option value="premium">Premium</option>
+                            </select>
+                          </div>
+                        )}
+                        <div className="text-sm text-gray-500 bg-purple-50/50 px-4 py-2 rounded-full">
+                          {user.role === 'god' ? 'Administrador' : user.role === 'gratis' ? 'Gratis' : user.role === 'pro' ? 'Pro' : user.role === 'premium' ? 'Premium' : 'Desconocido'}
+                        </div>
+                        <div className="text-sm text-gray-500 bg-purple-50/50 px-4 py-2 rounded-full">
+                          Registrado el {new Date(user.createdAt).toLocaleDateString()}
+                        </div>
+                        {user.role !== 'god' && (
+                          <button
+                            onClick={() => user.isBlocked ? handleUnblockUser(user.id) : handleBlockUser(user.id)}
+                            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200 ${user.isBlocked ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'}`}
+                          >
+                            {user.isBlocked ? 'Desbloquear' : 'Bloquear'}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
-        </div>
-      </div>
+         
     </div>
   );
-} 
+}
