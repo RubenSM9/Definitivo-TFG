@@ -30,6 +30,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className="h-full">
+      
       <body
         className={`
           ${geistSans.variable} ${geistMono.variable} 
