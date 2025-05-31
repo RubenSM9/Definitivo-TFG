@@ -32,14 +32,14 @@ export default function TareasPage() {
           <p className="text-md md:text-lg text-gray-400 max-w-2xl mx-auto">
             Diseñado para impulsarte a trabajar con enfoque, claridad y control. Visualiza tus tareas, prioriza lo importante, y empieza a ejecutar.
           </p>
-          <Link href="/tablero">
+          <Link href="/register">
             <button className="bg-gradient-to-r from-purple-500 to-blue-500 text-white text-lg font-bold py-3 px-10 rounded-full shadow-lg transition-all duration-300 hover:from-purple-600 hover:to-cyan-400 hover:shadow-blue-500/60 hover:scale-110 border border-white/10 backdrop-blur-sm">
               ⚡ Empezar ahora mismo →
             </button>
           </Link>
           <br /><br />
           <div>
-            <Link href="/planes">
+            <Link href="/planes/premium">
               <p className="text-blue-400 hover:text-blue-500 underline transition-colors duration-200 text-sm">
                 Obtener más información sobre los planes de uso
               </p>
@@ -52,7 +52,7 @@ export default function TareasPage() {
           <div className="text-gray-300 space-y-4 text-center md:text-left">
             <h2 className="text-xl text-white font-bold">🧠 Planificación sin esfuerzo</h2>
             <p>
-              ¡Entérate de todo! Planifica tareas y eventos directamente desde tus herramientas favoritas, como Google Calendar y Outlook.
+              ¡Entérate de todo! Planifica tareas y eventos directamente desde Zentasker.
             </p>
           </div>
           <img
@@ -72,7 +72,8 @@ export default function TareasPage() {
           <div className="text-gray-300 space-y-4 text-center md:text-left">
             <h2 className="text-xl text-white font-bold">🎯 Organización intuitiva</h2>
             <p>
-              ¿Estás listo para reservarte tus planes? Solo arrastra y suelta las tareas en los tableros adecuados. Fácil, rápido y visual.
+              ¿Preparado para dominar tu tiempo?
+Organiza tus planes con un simple gesto: arrastra, suelta y alcanza tus objetivos de forma fácil y visual.
             </p>
           </div>
         </div>
@@ -92,6 +93,6 @@ export default function TareasPage() {
           />
         </div>
       </div>
-    </>
-  );
+    </>
+  );
 }

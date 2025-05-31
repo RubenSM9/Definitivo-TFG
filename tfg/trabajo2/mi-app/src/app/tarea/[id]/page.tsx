@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Settings, Calendar, Users, Tag, Clock, BarChart2, Filter, Search, Share2, User } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { auth } from '@/firebase/firebaseConfig';
@@ -52,7 +52,6 @@ export default function BoardPage() {
   const [nuevaSubtarea, setNuevaSubtarea] = useState('');
   const [nuevaSubtareaPrioridad, setNuevaSubtareaPrioridad] = useState('Media');
   const [nuevaSubtareaFechaLimite, setNuevaSubtareaFechaLimite] = useState('');
-  const [nuevaSubtareaComentario, setNuevaSubtareaComentario] = useState('');
   const [mostrarComentarios, setMostrarComentarios] = useState<{ [key: string]: boolean }>({});
   const [filtros, setFiltros] = useState({
     busqueda: '',
@@ -72,6 +71,27 @@ export default function BoardPage() {
   const [errorCompartir, setErrorCompartir] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [userRole, setUserRole] = useState<'god' | 'gratis' | 'pro' | 'premium' | null>(null);
+  const [showHoursDropdown, setShowHoursDropdown] = useState(false);
+
+  // Cache for user display names
+  const [userNamesCache, setUserNamesCache] = useState<{ [key: string]: string }>({});
+
+  // Function to get user display name from cache or fetch it
+  const getUserDisplayName = useCallback(async (userId: string) => {
+    if (userNamesCache[userId]) {
+      return userNamesCache[userId];
+    }
+    try {
+      const userProfile = await getUserProfile(userId);
+      if (userProfile) {
+        setUserNamesCache(prev => ({ ...prev, [userId]: userProfile.displayName }));
+        return userProfile.displayName;
+      }
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+    }
+    return 'Usuario desconocido'; // Default name if profile not found or error
+  }, [userNamesCache]);
 
   const esPropietario = tarjeta && tarjeta.userId === auth.currentUser?.uid;
 
@@ -92,6 +112,21 @@ export default function BoardPage() {
       const card = await getCardById(id);
       if (card && typeof card === 'object' && 'nombre' in card && 'prioridad' in card && 'tareas' in card && Array.isArray(card.tareas)) {
         const cardData = card as Tarjeta;
+        
+        // Collect all unique completer user IDs from subtareas
+        const completerUserIds = new Set<string>();
+        cardData.tareas.forEach(tarea => {
+          tarea.subtareas?.forEach(sub => {
+            if (sub.completada && sub.completedByUserId) {
+              completerUserIds.add(sub.completedByUserId);
+            }
+          });
+        });
+
+        // Fetch and cache user names for all completer user IDs
+        const fetchUserNamePromises = Array.from(completerUserIds).map(userId => getUserDisplayName(userId));
+        await Promise.all(fetchUserNamePromises);
+
         setTarjeta(cardData);
         
         // Si hay una tarea seleccionada, actualizarla con los datos frescos
@@ -125,6 +160,62 @@ export default function BoardPage() {
       setEstadisticas(stats);
     }
   }, [tarjeta]);
+
+  // Handle input change for dedicated hours
+  const handleHoursInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    console.log('Input change detected. Value:', value); // Log input change
+    // Update selectedTarea with the new input value
+    setSelectedTarea(prev => {
+      if (!prev) return prev;
+      return { ...prev, newHoursInput: value }; // Store input value in selectedTarea
+    });
+    console.log('selectedTarea.newHoursInput after state update:', value); // Log state after update
+  };
+
+  // Handle adding dedicated hours
+  const handleAddHours = async () => {
+    const hoursToAdd = parseFloat(selectedTarea?.newHoursInput || ''); // Get value from selectedTarea
+    if (isNaN(hoursToAdd) || hoursToAdd <= 0 || !selectedTarea) {
+      alert('Por favor, ingresa un número de horas válido.');
+      return;
+    }
+
+    try {
+      const currentHours = selectedTarea.horasDedicadas ?? 0;
+      const updatedHours = currentHours + hoursToAdd;
+
+      await updateTask(id, selectedTarea.id, {
+        horasDedicadas: updatedHours
+      });
+
+      // Update local state
+      setSelectedTarea(prev => {
+        if (!prev) return prev;
+        return { ...prev, horasDedicadas: updatedHours, newHoursInput: '' }; // Reset input value
+      });
+
+    } catch (error) {
+      console.error('Error adding dedicated hours:', error);
+      alert('Error al añadir horas dedicadas.');
+    }
+  };
+
+  // Fetch completer names when selected task changes
+  useEffect(() => {
+    if (selectedTarea?.subtareas) {
+      selectedTarea.subtareas.forEach(sub => {
+        if (sub.completada && sub.completedByUserId && !userNamesCache[sub.completedByUserId]) {
+          getUserDisplayName(sub.completedByUserId);
+        }
+      });
+    }
+  }, [selectedTarea, getUserDisplayName, userNamesCache]);
+
+  // Effect to log state changes for debugging
+  useEffect(() => {
+    console.log('showHoursDropdown changed:', showHoursDropdown);
+  }, [showHoursDropdown]);
 
   const handleTareaClick = (tarea: Task) => {
     setSelectedTarea({
@@ -166,10 +257,16 @@ export default function BoardPage() {
 
       await updateSubtask(id, selectedTarea.id, sub.id, {
         completada: !sub.completada,
+        completedByUserId: !sub.completada ? auth.currentUser.uid : null,
         titulo: sub.titulo,
         prioridad: sub.prioridad,
         fechaLimite: sub.fechaLimite
       });
+
+      // If subtask is now completed, fetch and cache the completer's name
+      if (!sub.completada && auth.currentUser) { // Check if it was just marked as completed
+        await getUserDisplayName(auth.currentUser.uid);
+      }
 
       // Actualizar selectedTarea localmente para re-renderizar el modal
       setSelectedTarea(prev => {
@@ -343,30 +440,6 @@ export default function BoardPage() {
       setNuevaSubtareaFechaLimite('');
     } catch (error) {
       console.error("Error al agregar subtarea:", error);
-    }
-  };
-
-  const agregarComentario = async (subId: string) => {
-    if (!nuevaSubtareaComentario.trim() || !selectedTarea) return;
-
-    try {
-      if (!auth.currentUser) {
-        router.push('/login');
-        return;
-      }
-
-      const commentData = {
-        texto: nuevaSubtareaComentario,
-        userId: auth.currentUser.uid,
-        fecha: new Date().toISOString()
-      };
-
-      await addComment(id, selectedTarea.id, subId, commentData);
-
-      setNuevaSubtareaComentario('');
-      await cargarDatos();
-    } catch (error) {
-      console.error("Error al agregar comentario:", error);
     }
   };
 
@@ -917,26 +990,71 @@ export default function BoardPage() {
       >
               <div key={selectedTarea.id} className={`h-full overflow-y-auto px-8 pb-8 border-b-4 ${selectedTarea.completada ? 'border-green-500' : estaAtrasada(selectedTarea.fechaLimite || '') ? 'border-red-500' : 'border-gray-300'}`}>
         <div className="mt-6 text-left">
-                  <div className="flex items-center space-x-4 mb-4">
-                    <input
-                      type="checkbox"
-                      checked={selectedTarea.completada ?? false}
-                      onChange={() => handleTareaCompletion(selectedTarea)}
-                      className="w-5 h-5 rounded-md border-gray-300 text-purple-600 focus:ring-purple-500"
-                    />
-                    <h2 className={`text-2xl font-bold ${selectedTarea.completada ? 'line-through text-gray-500' : ''}`}>
-                      {selectedTarea.nombre}
-                    </h2>
+                  {/* Header con checkbox, titulo, ajustes y reloj */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedTarea.completada ?? false}
+                        onChange={() => handleTareaCompletion(selectedTarea)}
+                        className="w-5 h-5 rounded-md border-gray-300 text-purple-600 focus:ring-purple-500"
+                      />
+                      <h2 className={`text-2xl font-bold ${selectedTarea.completada ? 'line-through text-gray-500' : ''}`}>
+                        {selectedTarea.nombre}
+                      </h2>
+                    </div>
+
+                    <div className="flex items-center space-x-4">
+                      <button 
+                        onClick={() => router.push(`/tarea/${id}/ajustes`)}
+                        className="text-gray-500 hover:text-gray-700"
+                        aria-label="Ajustes de la tarjeta"
+                      >
+                        <Settings size={20} />
+                      </button>
+
+                      {/* Clock Icon and Dropdown */}
+                      <div className="relative">
+                        <button 
+                          onClick={() => {
+                            console.log('Toggling dropdown. Current showHoursDropdown:', showHoursDropdown, 'Current newHours state:', selectedTarea?.newHoursInput); // Log before toggle
+                            setShowHoursDropdown(!showHoursDropdown);
+                          }}
+                          className="text-gray-500 hover:text-gray-700"
+                          aria-label="Ver horas dedicadas"
+                        >
+                          <Clock size={20} />
+                        </button>
+                        
+                        {showHoursDropdown && selectedTarea && (
+                          <div className="absolute top-full mt-2 right-0 bg-white rounded-md shadow-lg py-2 px-4 z-10 w-40 text-gray-900">
+                            <p className="text-sm font-semibold text-gray-800 mb-2 text-center">
+                              Total Horas: {selectedTarea.horasDedicadas ?? 0}
+                            </p>
+                            {/* Input and button to add hours */}
+                            <div className="flex space-x-2 items-center">
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.5"
+                                value={selectedTarea?.newHoursInput ?? ''}
+                                onChange={handleHoursInputChange}
+                                placeholder="+"
+                                className="w-16 p-1 border rounded text-center text-sm"
+                              />
+                              <button
+                                onClick={handleAddHours}
+                                className="flex-1 px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded"
+                              >
+                                Añadir
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-4 mb-4">
-                    <button 
-                      onClick={() => router.push(`/tarea/${id}/ajustes`)}
-                      className="text-gray-500 hover:text-gray-700"
-                      aria-label="Ajustes de la tarjeta"
-                    >
-                      <Settings size={20} />
-                    </button>
-                  </div>
+
                   {selectedTarea.descripcion && (
                     <p className={`text-gray-600 mb-4 ${selectedTarea.completada ? 'line-through' : ''}`}>
                       {selectedTarea.descripcion}
@@ -1026,6 +1144,13 @@ export default function BoardPage() {
                           {new Date(sub.fechaLimite).toLocaleDateString()}
                         </span>
                       )}
+
+                      {sub.completada && sub.completedByUserId && (
+                        <span className="text-xs text-gray-500 mt-1">
+                          Completado por: <span className="font-semibold">{userNamesCache[sub.completedByUserId] || 'Cargando...'}</span>
+                        </span>
+                      )}
+
                     </div>
                     {sub.comentarios?.length > 0 && (
                       <div className="mt-1 text-sm text-gray-500">
@@ -1034,12 +1159,7 @@ export default function BoardPage() {
                     )}
                   </div>
                   <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => setMostrarComentarios({ ...mostrarComentarios, [sub.id]: !mostrarComentarios[sub.id] })}
-                      className="text-blue-500 hover:text-blue-700"
-                    >
-                      💬
-                    </button>
+                    
                     {esPropietario && (
                       <button
                         onClick={() => eliminarSubtarea(sub.id)}
@@ -1051,42 +1171,6 @@ export default function BoardPage() {
                     )}
                   </div>
                 </div>
-                
-                {/* Sección de comentarios */}
-                {mostrarComentarios[sub.id] && (
-                  <div className="mt-3 pl-8 border-t pt-3">
-                    <div className="space-y-2">
-                      {sub.comentarios?.map((comentario: any) => (
-                        <div key={comentario.id} className="text-sm text-gray-600">
-                          <div className="flex justify-between">
-                            <span>{comentario.texto}</span>
-                            <span className="text-xs text-gray-400">
-                              {new Date(comentario.fecha).toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-2 flex space-x-2">
-                      <input
-                        type="text"
-                        value={nuevaSubtareaComentario}
-                        onChange={(e) => setNuevaSubtareaComentario(e.target.value)}
-                        placeholder="Nuevo comentario"
-                        className="flex-1 p-2 text-sm border rounded"
-                      />
-                      {esPropietario && (
-                        <button
-                          onClick={() => agregarComentario(sub.id)}
-                          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-                        >
-                          Comentar
-                        </button>
-                        
-                      )}
-                    </div>
-                  </div>
-                )}
               </motion.li>
             ))}
           </ul>

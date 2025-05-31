@@ -47,6 +47,36 @@ export default function AdminView() {
       try {
         await updateUserBlockedStatus(userId, true);
         fetchUsers();
+
+        // Find the blocked user's email from the current users list
+        const blockedUser = users.find(user => user.id === userId);
+
+        if (blockedUser) {
+          // Send email notification
+          try {
+            const response = await fetch('/api/send-email', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                email: blockedUser.email,
+                subject: 'Tu cuenta ha sido bloqueada',
+                message: `<p>Hola ${blockedUser.displayName || blockedUser.email},</p><p>Te informamos que tu cuenta en Zentasker ha sido bloqueada por un administrador. Si crees que ha sido un error, por favor contacta con soporte.</p><p>Saludos,<br/>El equipo de Zentasker</p>`,
+              }),
+            });
+
+            const data = await response.json();
+            if (data.success) {
+              console.log(`Email de bloqueo enviado a ${blockedUser.email}`);
+            } else {
+              console.error(`Error al enviar email de bloqueo a ${blockedUser.email}:`, data.error);
+            }
+          } catch (emailError) {
+            console.error(`Error de red al intentar enviar email de bloqueo a ${blockedUser.email}:`, emailError);
+          }
+        }
+
       } catch (error) {
         console.error('Error blocking user:', error);
         alert('Error al bloquear usuario.');
@@ -68,8 +98,55 @@ export default function AdminView() {
 
   const handleRoleChange = async (userId: string, newRole: User['role']) => {
     try {
+      // Find the user in the current users list to get their current role
+      const userToUpdate = users.find(user => user.id === userId);
+      const oldRole = userToUpdate?.role;
+
       await updateUserRole(userId, newRole);
       fetchUsers();
+
+      // Send email notification if the role actually changed and user was found
+      if (userToUpdate && oldRole !== newRole) {
+        let action = '';
+        if (newRole === 'gratis' && (oldRole === 'pro' || oldRole === 'premium')) {
+          action = 'bajado a';
+        } else if (newRole === 'pro' && oldRole === 'gratis') {
+          action = 'subido a';
+        } else if (newRole === 'pro' && oldRole === 'premium') {
+          action = 'bajado a';
+        } else if (newRole === 'premium' && (oldRole === 'gratis' || oldRole === 'pro')) {
+          action = 'subido a';
+        } else if (newRole === 'god') {
+           action = 'cambiado a'; // Assuming changing to god is a special case
+        }
+
+        const subject = 'Tu plan en Zentasker ha sido actualizado';
+        const message = `<p>Hola ${userToUpdate.displayName || userToUpdate.email},</p><p>Te informamos que tu plan en Zentasker ha sido ${action} <strong>${newRole}</strong>.</p><p>Si tienes alguna pregunta, no dudes en contactarnos.</p><p>Saludos,<br/>El equipo de Zentasker</p>`;
+
+        try {
+          const response = await fetch('/api/send-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: userToUpdate.email,
+              subject: subject,
+              message: message,
+            }),
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            console.log(`Email de cambio de plan enviado a ${userToUpdate.email}`);
+          } else {
+            console.error(`Error al enviar email de cambio de plan a ${userToUpdate.email}:`, data.error);
+          }
+        } catch (emailError) {
+          console.error(`Error de red al intentar enviar email de cambio de plan a ${userToUpdate.email}:`, emailError);
+        }
+      }
+
     } catch (error) {
       console.error('Error changing user role:', error);
       alert('Error al cambiar el plan del usuario.');

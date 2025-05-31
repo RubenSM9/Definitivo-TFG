@@ -51,6 +51,9 @@ export interface Task {
   fechaLimite?: string;
   prioridad: string;
   asignado?: string;
+  extraFiles?: string[];
+  horasDedicadas?: number;
+  newHoursInput?: string;
 }
 
 export interface Subtask {
@@ -58,6 +61,7 @@ export interface Subtask {
   titulo: string;
   nombre: string;
   completada: boolean;
+  completedByUserId?: string | null;
   comments: Comment[];
   createdAt: string;
   updatedAt?: string;
@@ -101,11 +105,14 @@ export const getUserProfile = async (userId: string): Promise<UserData | null> =
     const docRef = doc(db, 'users', userId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return docSnap.data() as UserData;
+      const userData = docSnap.data();
+      console.log(`Fetched profile for userId ${userId}:`, userData); // <-- Add this log
+      return userData as UserData;
     }
+    console.log(`Profile not found for userId: ${userId}`); // <-- Add this log
     return null;
   } catch (error) {
-    console.error('Error getting user profile:', error);
+    console.error(`Error getting user profile for userId ${userId}:`, error); // <-- Modify this log
     throw error;
   }
 };

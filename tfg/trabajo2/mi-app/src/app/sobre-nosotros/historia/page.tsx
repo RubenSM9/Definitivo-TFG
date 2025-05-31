@@ -1,4 +1,5 @@
 // components/HistoriaZentasker.tsx
+'use client'; // 👈 Asegúrate si estás usando client components
 
 import React from "react";
 
@@ -22,9 +23,15 @@ export default function HistoriaZentasker() {
         sencillo de usar y adaptable a cualquier necesidad, siempre con el objetivo de hacer la vida un poco más fácil 
         para todos.
       </p>
-      <p className="text-lg">
-        Hoy, Zentasker es mucho más que un proyecto académico: es nuestra manera de aportar nuestro granito de arena al mundo.
-      </p>
+     
+      {/* Aquí añadimos la imagen */}
+      <div className="flex justify-center">
+        <img 
+          src="/images/Equipo.jpg" 
+          alt="Equipo Zentasker" 
+          className="rounded-lg shadow-lg max-w-full h-auto"
+        />
+      </div>
     </section>
-  );
+  );
 }

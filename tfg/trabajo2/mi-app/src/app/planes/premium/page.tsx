@@ -1,6 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { auth } from '@/firebase/firebaseConfig';
+import { updateUserRole, getUserProfile } from '@/firebase/firebaseOperations';
 
 const plans = [
   {
@@ -11,12 +13,12 @@ const plans = [
     color: 'from-gray-800 to-gray-900',
     advantages: [
       '✅ Acceso limitado a funciones',
-      '✅ Perfecto para empezar',
+      '✅Tareas Ilimitadas',
     ],
     disadvantages: [
       '❌ Sin soporte',
       '❌ Sin acceso a funciones premium',
-      '❌ Anuncios visibles',
+      '❌ No puedes compartir tareas',
     ],
   },
   {
@@ -27,12 +29,12 @@ const plans = [
     color: 'from-purple-700 to-purple-900',
     advantages: [
       '✅ Acceso completo a funciones estándar',
-      '✅ Actualizaciones regulares',
-      '✅ Panel de usuario personalizado',
+      '✅ Sed renueva cada 30 dias',
     ],
     disadvantages: [
       '❌ Sin soporte prioritario',
       '❌ Sin acceso anticipado a nuevas funciones',
+      '❌ Solo puede compartir 3 tareas'
     ],
   },
   {
@@ -44,11 +46,10 @@ const plans = [
     advantages: [
       '✅ Todo lo del plan Pro',
       '✅ Soporte prioritario 24/7',
-      '✅ Acceso anticipado a funciones beta',
-      '✅ Invitaciones a eventos exclusivos',
+      '✅ Sin restricciones puede compartir infinitas tareas',
+      '✅ Se renueva cada 40 dias ',
     ],
     disadvantages: [
-      '❌ Coste mensual más alto',
     ],
   },
 ];
@@ -56,22 +57,78 @@ const plans = [
 export default function PremiumPage() {
   const router = useRouter();
 
-  const handleCheckout = async (priceId: string | null) => {
-    if (!priceId) return;
-    const res = await fetch('/api/checkout', {
-      method: 'POST',
-      body: JSON.stringify({ priceId }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+  const handleChangePlanAndSendEmail = async (newRole: 'gratis' | 'pro' | 'premium') => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      alert('Debes iniciar sesión para cambiar de plan.');
+      router.push('/login');
+      return;
+    }
 
-    const data = await res.json();
+    try {
+      const userProfile = await getUserProfile(currentUser.uid);
+      const oldRole = userProfile?.role;
 
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
-      alert('Error al iniciar el checkout');
+      if (oldRole === newRole) {
+        alert(`Ya tienes el plan ${newRole}.`);
+        return;
+      }
+
+      await updateUserRole(currentUser.uid, newRole);
+
+      let action = '';
+      if (newRole === 'gratis' && (oldRole === 'pro' || oldRole === 'premium')) {
+        action = 'bajado a';
+      } else if (newRole === 'pro' && oldRole === 'gratis') {
+        action = 'subido a';
+      } else if (newRole === 'pro' && oldRole === 'premium') {
+        action = 'bajado a';
+      } else if (newRole === 'premium' && (oldRole === 'gratis' || oldRole === 'pro')) {
+        action = 'subido a';
+      }
+
+      const subject = 'Tu plan en Zentasker ha sido actualizado';
+      const message = `<p>Hola ${userProfile?.displayName || currentUser.email},</p><p>Te informamos que tu plan en Zentasker ha sido ${action} <strong>${newRole}</strong>.</p><p>Si tienes alguna pregunta, no dudes en contactarnos.</p><p>Saludos,<br/>El equipo de Zentasker</p>`;
+
+      try {
+        const response = await fetch('/api/send-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: currentUser.email,
+            subject: subject,
+            message: message,
+          }),
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          console.log(`Email de cambio de plan enviado a ${currentUser.email}`);
+          alert(`Tu plan ha sido actualizado a ${newRole} y se ha enviado un correo de confirmación.`);
+        } else {
+          console.error(`Error al enviar email de cambio de plan a ${currentUser.email}:`, data.error);
+          alert(`Tu plan ha sido actualizado a ${newRole}, pero hubo un error al enviar el correo de confirmación.`);
+        }
+      } catch (emailError) {
+        console.error(`Error de red al intentar enviar email de cambio de plan a ${currentUser.email}:`, emailError);
+        alert(`Tu plan ha sido actualizado a ${newRole}, pero hubo un error de red al enviar el correo de confirmación.`);
+      }
+
+      // Refresh the page to show the updated plan details if necessary
+      // router.refresh(); // Or update local state
+
+    } catch (error: any) {
+      console.error('Error changing user plan:', error);
+      // Log more specific details if available
+      if (error.message) {
+        console.error('Error message:', error.message);
+      }
+      if (error.code) {
+        console.error('Error code:', error.code);
+      }
+      alert('Error al cambiar tu plan.');
     }
   };
 
@@ -101,7 +158,6 @@ export default function PremiumPage() {
               </div>
 
               <div>
-                <h3 className="text-red-400 font-bold mb-2">❌ Desventajas</h3>
                 <ul className="list-disc list-inside text-red-300 space-y-1">
                   {plan.disadvantages.map((dis, i) => (
                     <li key={i}>{dis}</li>
@@ -112,7 +168,7 @@ export default function PremiumPage() {
 
             {plan.priceId && (
               <button
-                onClick={() => handleCheckout(plan.priceId)}
+                onClick={() => handleChangePlanAndSendEmail(plan.name === 'Plan Gratis' ? 'gratis' : plan.name === 'Plan Pro' ? 'pro' : 'premium')}
                 className="mt-8 bg-black border border-white hover:bg-white hover:text-black text-white font-bold py-2 px-4 rounded-lg transition"
               >
                 Elegir {plan.name}
