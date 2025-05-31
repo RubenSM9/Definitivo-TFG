@@ -97,18 +97,7 @@ export default function TareaPrevia({ tarjeta, onDelete }: TareaPreviaProps) {
         </button>
       </div>
 
-      {tarjeta.compartidoCon && tarjeta.compartidoCon.length > 0 && (
-        <>
-          <span className="text-xs text-gray-500 ml-2">Compartido con:</span>
-          {tarjeta.compartidoCon.map((correo) => (
-            <span key={correo} title={correo} className="flex items-center gap-1">
-              <span className="w-8 h-8 rounded-full bg-blue-400 text-white flex items-center justify-center font-bold text-base shadow" style={{minWidth: '2rem'}}>
-                {correo[0]?.toUpperCase() || '?'}
-              </span>
-            </span>
-          ))}
-        </>
-      )}
+      
     </div>
   );
 }

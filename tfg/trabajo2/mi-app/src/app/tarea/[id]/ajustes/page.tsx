@@ -122,42 +122,45 @@ export default function AjustesTarjeta() {
 
   return (
     <EtiquetaCompleta>
-      <h1 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 bg-clip-text text-transparent">
-        Ajustes de Tarjeta
-      </h1>
+  <div className="max-w-2xl mx-auto mt-10 mb-20 px-4">
+    <h1 className="text-4xl font-extrabold text-center bg-gradient-to-r from-purple-600 via-pink-500 to-sky-400 bg-clip-text text-transparent mb-10">
+      Ajustes de Tarjeta
+    </h1>
 
-      {/* Botón Volver */}
+    <div className="mb-6 text-left">
       <button
         onClick={volver}
-        className="mb-4 py-2 px-4 bg-gray-400 hover:bg-gray-500 text-white font-bold rounded-lg shadow-md"
+        className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
       >
-        Volver
+        ← Volver
       </button>
+    </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Título */}
+    <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl p-8 border-4 border-purple-300">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Nombre */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
             Nombre de la Tarjeta
           </label>
           <input
             type="text"
             value={formData.nombre}
             onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-            className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900 shadow-sm transition"
             required
           />
         </div>
 
         {/* Prioridad */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
             Prioridad
           </label>
           <select
             value={formData.prioridad}
             onChange={(e) => setFormData({ ...formData, prioridad: e.target.value })}
-            className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm transition"
           >
             <option value="Baja">Baja</option>
             <option value="Media">Media</option>
@@ -166,31 +169,35 @@ export default function AjustesTarjeta() {
         </div>
 
         {/* Botones */}
-        <div className="flex gap-4 justify-between pt-6">
+        <div className="flex flex-col sm:flex-row justify-between gap-4 pt-6 border-t border-gray-200">
           <button
             type="button"
             onClick={handleDelete}
-            className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+            className="w-full sm:w-auto px-6 py-2.5 bg-red-500 hover:bg-red-600 text-white font-medium rounded-xl transition-colors shadow-md"
           >
-            Eliminar Tarjeta
+             Eliminar Tarjeta
           </button>
-          <div className="flex gap-4">
+
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
             <button
               type="button"
               onClick={volver}
-              className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+              className="w-full sm:w-auto px-6 py-2.5 bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium rounded-xl transition-colors shadow-md"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 text-white rounded-lg font-semibold shadow-lg hover:shadow-purple-500/50 transition-all duration-300"
+              className="w-full sm:w-auto px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-colors shadow-md"
             >
-              Guardar Cambios
+               Guardar Cambios
             </button>
           </div>
         </div>
       </form>
-    </EtiquetaCompleta>
+    </div>
+  </div>
+</EtiquetaCompleta>
+
   );
 }

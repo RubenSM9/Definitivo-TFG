@@ -154,6 +154,19 @@ export const updateCard = async (cardId: string, cardData: Partial<CardData>) =>
   }
 };
 
+export const addEmailsToCardSharedWith = async (cardId: string, emails: string[]) => {
+  try {
+    const cardRef = doc(db, 'cards', cardId);
+    await updateDoc(cardRef, {
+      compartidoCon: arrayUnion(...emails),
+      updatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error(`Error adding emails to sharedWith for card ${cardId}:`, error);
+    throw error;
+  }
+};
+
 export const deleteCard = async (cardId: string): Promise<void> => {
   try {
     const cardRef = doc(db, 'cards', cardId);

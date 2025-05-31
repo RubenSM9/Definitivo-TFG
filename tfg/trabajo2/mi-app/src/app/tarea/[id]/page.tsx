@@ -23,7 +23,8 @@ import {
   Subtask,
   Comment,
   CardData,
-  getUserProfile
+  getUserProfile,
+  addEmailsToCardSharedWith
 } from '@/firebase/firebaseOperations';
 import EtiquetaCompleta from '@/components/etiqueta_completa';
 
@@ -90,7 +91,16 @@ export default function BoardPage() {
 
       const card = await getCardById(id);
       if (card && typeof card === 'object' && 'nombre' in card && 'prioridad' in card && 'tareas' in card && Array.isArray(card.tareas)) {
-        setTarjeta(card as Tarjeta);
+        const cardData = card as Tarjeta;
+        setTarjeta(cardData);
+        
+        // Si hay una tarea seleccionada, actualizarla con los datos frescos
+        if (selectedTarea) {
+          const updatedSelectedTarea = cardData.tareas.find(t => t.id === selectedTarea.id);
+          if (updatedSelectedTarea) {
+            setSelectedTarea({ ...updatedSelectedTarea, subtareas: updatedSelectedTarea.subtareas ?? [] });
+          }
+        }
       } else {
         console.log("No se encontró la tarjeta o está incompleta");
         router.push('/first');
@@ -138,19 +148,8 @@ export default function BoardPage() {
 
       await updateTask(id, tarea.id, nuevaTarea);
 
-      // Actualizar el estado local
+      // Actualizar selectedTarea localmente para re-renderizar el modal
       setSelectedTarea(nuevaTarea);
-      
-      // Actualizar la tarjeta local
-      setTarjeta(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          tareas: prev.tareas.map(t => 
-            t.id === tarea.id ? nuevaTarea : t
-          )
-        };
-      });
 
       await cargarDatos();
     } catch (error) {
@@ -172,42 +171,29 @@ export default function BoardPage() {
         fechaLimite: sub.fechaLimite
       });
 
-      // Solo actualizar el estado de la tarea si tiene subtareas
-      if (selectedTarea.subtareas && selectedTarea.subtareas.length > 0) {
-        const todasCompletadas = selectedTarea.subtareas.every((s: Subtask) => 
-          s.id === sub.id ? !sub.completada : s.completada
-        );
+      // Actualizar selectedTarea localmente para re-renderizar el modal
+      setSelectedTarea(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          subtareas: prev.subtareas.map((s: Subtask) => 
+            s.id === sub.id ? { ...s, completada: !sub.completada } : s
+          )
+        };
+      });
 
-        // Actualizar el estado de la tarea si es necesario
-        if (todasCompletadas !== selectedTarea.completada) {
+      // Verificar si todas las subtareas están completadas para actualizar la tarea padre
+      if (selectedTarea) { // selectedTarea is the task parent
+        const updatedSubtasks = selectedTarea.subtareas.map((s: Subtask) => 
+          s.id === sub.id ? { ...s, completada: !sub.completada } : s
+        );
+        const allSubtasksCompleted = updatedSubtasks.length > 0 && updatedSubtasks.every(s => s.completada);
+        
+        if (selectedTarea.completada !== allSubtasksCompleted) {
           await updateTask(id, selectedTarea.id, {
-            ...selectedTarea,
-            completada: todasCompletadas
+            completada: allSubtasksCompleted
           });
         }
-
-        // Actualizar el estado local
-        setSelectedTarea(prev => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            subtareas: prev.subtareas.map((s: Subtask) => 
-              s.id === sub.id ? { ...s, completada: !s.completada } : s
-            ),
-            completada: todasCompletadas
-          };
-        });
-      } else {
-        // Si no hay subtareas, solo actualizar la subtarea
-        setSelectedTarea(prev => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            subtareas: prev.subtareas.map((s: Subtask) => 
-              s.id === sub.id ? { ...s, completada: !s.completada } : s
-            )
-          };
-        });
       }
 
       await cargarDatos();
@@ -240,14 +226,8 @@ export default function BoardPage() {
 
       await addTask(id, tareaData);
 
-      // Actualizar la tarjeta local
-      setTarjeta(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          tareas: [...prev.tareas, { ...tareaData, id: Date.now().toString(), createdAt: new Date().toISOString() }]
-        };
-      });
+      // Recargar los datos para obtener la tarea recién creada con el ID real de Firebase
+      await cargarDatos();
 
       setNewTarea({
         nombre: '',
@@ -340,20 +320,22 @@ export default function BoardPage() {
       // Primero actualizar Firebase
       await addSubtask(id, selectedTarea.id, nuevaSubtareaData);
 
-      // Recargar los datos
-      await cargarDatos();
+      // Actualizar selectedTarea localmente para mostrar la nueva subtarea inmediatamente
+      setSelectedTarea(prev => {
+        if (!prev) return prev;
+        // Generar un ID temporal para la nueva subtarea antes de que cargarDatos la reemplace con el ID de Firebase
+        const tempSubtaskId = Date.now().toString(); 
+        console.log("SelectedTarea antes de cargarDatos:", { ...prev, subtareas: [...(prev.subtareas || []), { ...nuevaSubtareaData, id: tempSubtaskId, createdAt: new Date().toISOString() } as Subtask ] });
+        return {
+          ...prev,
+          subtareas: [...(prev.subtareas || []), { ...nuevaSubtareaData, id: tempSubtaskId, createdAt: new Date().toISOString() } as Subtask ]
+        };
+      });
 
-      // Actualizar selectedTarea con los datos más recientes
-      const card = await getCardById(id);
-      if (card && typeof card === 'object') {
-        const cardData = card as CardData & { id: string };
-        if (cardData.tareas) {
-          const tareaActualizada = cardData.tareas.find((t: Task) => t.id === selectedTarea.id);
-          if (tareaActualizada) {
-            setSelectedTarea(tareaActualizada);
-          }
-        }
-      }
+      // Recargar los datos para obtener el ID real de Firebase y asegurar consistencia
+      await cargarDatos();
+      console.log("Tarjeta después de cargarDatos:", tarjeta);
+      console.log("SelectedTarea después de cargarDatos:", selectedTarea);
 
       // Limpiar el formulario
       setNuevaSubtarea('');
@@ -467,11 +449,8 @@ export default function BoardPage() {
         return;
       }
 
-      // Actualizar la tarjeta en Firebase
-      await updateCard(id, {
-        ...tarjeta,
-        compartidoCon: correos,
-      });
+      // Actualizar la tarjeta en Firebase usando arrayUnion
+      await addEmailsToCardSharedWith(id, correos);
 
       // Enviar notificaciones por email
       const currentUser = auth.currentUser;
@@ -772,7 +751,7 @@ export default function BoardPage() {
                 {sortedAndFilteredTareas?.map((tarea: any) => (
                   <motion.div
                     key={tarea.id}
-                    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-purple-200 hover:shadow-xl transition-all duration-200 cursor-pointer"
+                    className={`bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer border-b-2 ${tarea.completada ? 'border-green-500' : estaAtrasada(tarea.fechaLimite) ? 'border-red-500' : 'border-yellow-500'}`}
                     onClick={() => handleTareaClick(tarea)}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -936,7 +915,7 @@ export default function BoardPage() {
         aria-labelledby="modal-title"
         aria-describedby="modal-description"
       >
-              <div className="h-full overflow-y-auto px-8">
+              <div key={selectedTarea.id} className={`h-full overflow-y-auto px-8 pb-8 border-b-4 ${selectedTarea.completada ? 'border-green-500' : estaAtrasada(selectedTarea.fechaLimite || '') ? 'border-red-500' : 'border-gray-300'}`}>
         <div className="mt-6 text-left">
                   <div className="flex items-center space-x-4 mb-4">
                     <input
@@ -948,6 +927,15 @@ export default function BoardPage() {
                     <h2 className={`text-2xl font-bold ${selectedTarea.completada ? 'line-through text-gray-500' : ''}`}>
                       {selectedTarea.nombre}
                     </h2>
+                  </div>
+                  <div className="flex items-center space-x-4 mb-4">
+                    <button 
+                      onClick={() => router.push(`/tarea/${id}/ajustes`)}
+                      className="text-gray-500 hover:text-gray-700"
+                      aria-label="Ajustes de la tarjeta"
+                    >
+                      <Settings size={20} />
+                    </button>
                   </div>
                   {selectedTarea.descripcion && (
                     <p className={`text-gray-600 mb-4 ${selectedTarea.completada ? 'line-through' : ''}`}>
