@@ -3,12 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/firebase/firebaseConfig';
-import { getUserCards, Task } from '@/firebase/firebaseOperations';
+import { getUserCards, Task, CardData } from '@/firebase/firebaseOperations';
 import Calendar from '@/components/Calendar';
 
 export default function CalendarPage() {
   const router = useRouter();
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [cards, setCards] = useState<CardData[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   useEffect(() => {
@@ -20,8 +20,7 @@ export default function CalendarPage() {
 
       try {
         const cards = await getUserCards(auth.currentUser.uid);
-        const allTasks = cards.flatMap(card => card.tareas);
-        setTasks(allTasks);
+        setCards(cards);
       } catch (error) {
         console.error('Error loading tasks:', error);
       }
@@ -41,7 +40,7 @@ export default function CalendarPage() {
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <Calendar tasks={tasks} onSelectTask={handleSelectTask} />
+            <Calendar tasks={cards} onSelectTask={handleSelectTask} />
           </div>
           
           {selectedTask && (
