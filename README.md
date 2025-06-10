@@ -10,6 +10,7 @@ Este proyecto es una aplicación web moderna desarrollada con Next.js y TypeScri
 - Sistema de etiquetas para categorización
 - Interfaz de usuario moderna y responsive
 - Gestión de ajustes de usuario
+- Calendario integrado para visualización de tareas
 
 ## Tecnologías Utilizadas
 
@@ -18,6 +19,22 @@ Este proyecto es una aplicación web moderna desarrollada con Next.js y TypeScri
 - Tailwind CSS
 - React
 - Node.js
+- React Big Calendar
+- date-fns
+
+## Dependencias Principales
+
+```json
+{
+  "dependencies": {
+    "date-fns": "^4.1.0",
+    "react-big-calendar": "^1.18.0"
+  },
+  "devDependencies": {
+    "@types/react-big-calendar": "^1.16.2"
+  }
+}
+```
 
 ## Estructura del Proyecto
 
@@ -68,7 +85,6 @@ git clone [URL_DEL_REPOSITORIO]
 
 2. Instalar dependencias:
 ```bash
-cd tfg/trabajo2/mi-app
 npm install
 ```
 
@@ -92,6 +108,7 @@ La aplicación estará disponible en `http://localhost:3000`
   - etiqueta_alta: Etiquetas de prioridad alta
   - etiqueta_completa: Etiquetas completas
   - etiqueta_larga: Etiquetas con descripción larga
+- **Calendario**: Visualización de tareas en formato calendario
 
 ## Contribución
 
